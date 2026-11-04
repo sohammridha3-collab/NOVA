@@ -346,9 +346,7 @@ export class VoicePipeline {
     formData.append('audio', blob, `recording.${ext}`);
     formData.append('language', this.selectedLanguage);
 
-    const headers = {
-      'X-API-Key': api.apiKey
-    };
+    const headers = {};
     if (api.authToken) {
       headers['Authorization'] = `Bearer ${api.authToken}`;
     }
@@ -501,3 +499,4 @@ export class VoicePipeline {
 export const voicePipeline = new VoicePipeline();
 // Alias for backward compatibility
 export const speech = voicePipeline;
+

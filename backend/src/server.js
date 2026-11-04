@@ -11,7 +11,7 @@ import { modelAdapter } from './ai/modelAdapter.js';
 
 const app = createApp();
 
-const server = app.listen(config.port, async () => {
+const server = app.listen(config.port, process.env.HOST || '127.0.0.1', async () => {
   console.log('========================================================');
   console.log(`🌌 NOVA Backend API Server v2.0.0 Online`);
   console.log(`📡 URL: http://localhost:${config.port}`);
@@ -59,3 +59,4 @@ function handleShutdown(signal) {
 
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 process.on('SIGINT', () => handleShutdown('SIGINT'));
+

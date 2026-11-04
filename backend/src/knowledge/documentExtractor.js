@@ -4,11 +4,7 @@
  * Preserves page numbers and section headers for accurate citation.
  */
 
-import { createRequire } from 'module';
 import path from 'path';
-
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
 
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.txt', '.md']);
 const ALLOWED_MIME_TYPES = new Set([
@@ -66,55 +62,20 @@ export async function extractDocumentText(buffer, fileType, originalName = '') {
  * Extracts text from PDF with page-accurate markers using pdf-parse.
  */
 async function extractPdfText(buffer) {
-  // Custom pagerender to inject page-number boundary delimiters
-  const pageRender = (pageData) => {
-    return pageData.getTextContent().then((textContent) => {
-      let lastY, text = '';
-      for (const item of textContent.items) {
-        if (lastY == null || lastY === item.transform[5]) {
-          text += item.str;
-        } else {
-          text += '\n' + item.str;
-        }
-        lastY = item.transform[5];
-      }
-      const pageNum = pageData.pageIndex + 1;
-      return `\n[[NOVA_PAGE_${pageNum}]]\n` + text;
-    });
-  };
-
-  const parsed = await pdfParse(buffer, { pagerender: pageRender });
-  const rawText = parsed.text || '';
-  const totalPages = parsed.numpages || 1;
-
-  // Split into page sections based on delimiter
-  const pageRegex = /\[\[NOVA_PAGE_(\d+)\]\]/g;
-  const sections = [];
-  let match;
-  let lastIndex = 0;
-  let currentPage = 1;
-
-  while ((match = pageRegex.exec(rawText)) !== null) {
-    if (sections.length > 0) {
-      sections[sections.length - 1].text = rawText.slice(lastIndex, match.index).trim();
-    }
-    currentPage = parseInt(match[1], 10);
-    lastIndex = match.index + match[0].length;
-    sections.push({ pageNumber: currentPage, sectionTitle: `Page ${currentPage}`, text: '' });
+  const { PDFParse } = await import('pdf-parse');
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  try {
+    const result = await parser.getText();
+    return {
+      pageCount: result.total,
+      fullText: result.text,
+      sections: result.pages.filter(page => page.text.trim()).map(page => ({
+        pageNumber: page.num, sectionTitle: `Page ${page.num}`, text: page.text.trim()
+      }))
+    };
+  } finally {
+    await parser.destroy();
   }
-
-  if (sections.length > 0) {
-    sections[sections.length - 1].text = rawText.slice(lastIndex).trim();
-  } else {
-    // Delimiter wasn't found (fallback)
-    sections.push({ pageNumber: 1, sectionTitle: 'Page 1', text: rawText.trim() });
-  }
-
-  return {
-    pageCount: totalPages,
-    sections: sections.filter((s) => s.text.length > 0),
-    fullText: rawText
-  };
 }
 
 /**
@@ -265,3 +226,4 @@ export function chunkDocumentSections(sections, maxChunkSize = 600, chunkOverlap
 
   return chunks;
 }
+

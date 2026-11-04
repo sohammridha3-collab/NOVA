@@ -548,6 +548,12 @@
           </button>
         </div>
 
+        <form id="ownerLogin" class="modal-body">
+          <label>Owner username <input name="username" autocomplete="username" required></label>
+          <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+          <button class="btn-primary" type="submit">Sign in and use live mode</button>
+          <span role="status" id="loginStatus"></span>
+        </form>
         <!-- CLI Guide Card -->
         <div style="background: rgba(6, 14, 32, 0.6); border: 1px solid var(--border-glass); padding: 0.85rem 1rem; border-radius: var(--radius-md); margin-top: 0.75rem;">
           <h4 style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 0.4rem;">Backend Management Commands:</h4>
@@ -572,3 +578,4 @@ cd backend && npm run test:api</pre>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
+

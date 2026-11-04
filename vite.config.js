@@ -4,10 +4,10 @@ export default defineConfig({
   server: {
     port: 5173,
     open: false,
-    host: true,
+    host: '127.0.0.1',
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true
       }
     }
@@ -25,3 +25,4 @@ export default defineConfig({
     }
   }
 });
+

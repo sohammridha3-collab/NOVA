@@ -119,7 +119,7 @@ async function runAgentTests() {
     });
     if (res.status !== 200) throw new Error(`Expected 200, got ${res.status}`);
     const osData = res.body.data;
-    if (osData.platform !== 'win32') throw new Error(`Expected win32 platform on Windows laptop, got ${osData.platform}`);
+    if (osData.platform !== process.platform) throw new Error(`Expected platform ${process.platform}, got ${osData.platform}`);
     if (!osData.cpu.model || osData.cpu.cores <= 0) throw new Error('Invalid CPU measurements');
     if (osData.memory.totalGb <= 0 || osData.memory.freeGb <= 0) throw new Error('Invalid memory measurements');
     if (typeof osData.uptimeSeconds !== 'number') throw new Error('Missing real uptime measurement');
@@ -314,3 +314,4 @@ runAgentTests().catch((err) => {
     process.exitCode = 1;
   }
 });
+
