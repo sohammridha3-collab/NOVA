@@ -1,7 +1,7 @@
-# NOVA — Living Intelligence
-### Sculptural 3D AI Workspace & Digital Studio
+# NOVA — Holographic AI Command Centre
+### Full-Screen Holographic AI Dashboard & Digital Studio
 
-NOVA is a premium, sculptural AI workspace frontend built with modern vanilla JavaScript, CSS custom properties, and Three.js running on Vite. Designed around the art direction **“NOVA — Living Intelligence”**, it replaces generic chatbot templates with an interwoven 3D sculpture centerpiece and an editorial conversation workspace.
+NOVA is a full-screen, cinematic blue holographic AI command centre built with modern vanilla JavaScript, Three.js, CSS custom properties, and Vite. Inspired by cinematic sci-fi monitor interfaces, it replaces standard conversational chat layouts with a large circular holographic energy reactor, balanced surrounding telemetry panels, an expandable stream drawer, and responsive command controls.
 
 ---
 
@@ -9,48 +9,58 @@ NOVA is a premium, sculptural AI workspace frontend built with modern vanilla Ja
 
 | View | Preview |
 |---|---|
-| **Living Intelligence Workspace** | ![Desktop Overview](docs/screenshots/living-desktop-overview.png) |
-| **Active Conversation & Thinking State** | ![Active Chat](docs/screenshots/living-chat-streamed.png) |
-| **Website Studio (Sandboxed)** | ![Website Studio](docs/screenshots/living-studio.png) |
-| **Conversation Archive** | ![Conversation Archive](docs/screenshots/living-history.png) |
-| **System Settings** | ![System Settings](docs/screenshots/living-settings.png) |
-| **Mobile Adaptive Layout** | ![Mobile Overview](docs/screenshots/living-mobile-overview.png) |
+| **Holographic Command Centre (Desktop)** | ![Holographic Desktop](docs/screenshots/holographic-desktop-overview.png) |
+| **Expandable Stream & Code Repository** | ![Expandable Drawer](docs/screenshots/holographic-drawer-expanded.png) |
+| **Live Command Dispatch & Formatted Code** | ![Streamed Code](docs/screenshots/holographic-stream-code.png) |
+| **Website Studio (Autonomous Sandbox)** | ![Website Studio](docs/screenshots/holographic-studio.png) |
+| **Conversation Archive** | ![Conversation Archive](docs/screenshots/holographic-history.png) |
+| **Mobile Adaptive Command Centre** | ![Mobile Overview](docs/screenshots/holographic-mobile.png) |
 
 ---
 
-## 💎 Signature 3D Object: Living Intelligence
+## ⚡ Central Holographic Energy Reactor
 
-The centerpiece is a procedural Three.js sculpture engineered from mathematical spline manifolds:
-- **Three Interwoven Twisted Ribbons:** Continuous 3D curves with visible thickness, 8-point chamfered bevels, and a smooth $1.5\times$ continuous twist.
-- **Brushed Titanium Surfaces:** `MeshStandardMaterial` (`metalness: 0.88`, `roughness: 0.28`) reflecting procedural studio softboxes without external HDR dependencies.
-- **Softly Illuminated Inner Edges:** Luminous inner edge conduits running along ribbons 1 & 2 in Electric Cyan (`#00f0ff`).
-- **Restrained Violet Accent:** Ribbon 3 features a deep violet metallic sheen and an illuminated Amethyst/Violet inner edge (`#a855f7`).
-- **Pearl-White Luminous Crystal:** A faceted gem suspended at the core (`#f8fafc`, `transmission: 0.65`, `ior: 1.52`) with an internal point light radiating soft light through its facets.
-- **Diagonal Asymmetrical Silhouette:** Tilted at `(0.32, -0.28, 0.22)` for a recognizable, cinematic presence.
-- **Faint Ground Halo & Drifting Dust Motes:** Additive ground glow and 42 drifting light particles gently orbiting and rising.
-- **State Transitions:**
-  - `Idle`: Gentle floating oscillation and organic ribbon breathing.
-  - `Listening`: Soft light traveling dynamically along the inner conduits.
-  - `Thinking`: Harmonized wave of motion and progressive ribbon illumination.
-  - `Speaking`: Subtle pearl-white crystal pulses.
-- **Hardware Fallback:** If WebGL is unavailable, NOVA seamlessly mounts an SVG/CSS hardware-accelerated replica of the interwoven ribbons and crystal.
-- **Genuinely Measured FPS:** Only real frames measured across 1000ms intervals are displayed (no fake frequencies or invented metrics).
+The focal point of NOVA is a layered circular energy reactor occupying ~45–55% of the desktop workspace height:
+- **Central Energy Nucleus:** Multi-faceted icosahedron geometry inside a translucent glass sphere (`transmission: 0.72`, `roughness: 0.12`) with internal dual-color point lights.
+- **Three Independently Rotating Segmented Rings:**
+  - *Inner Ring:* High-speed fine segments with 6 radial cutouts.
+  - *Mid Ring:* Counter-rotating segmented band with cardinal anchor markers.
+  - *Outer Ring:* Primary calibration ring with arc segments and glowing neon rims.
+- **72 Procedural Calibration Ticks:** Circumferential tick marks with major divisions every 6 units and cardinal indicators (`000°`, `090°`, `180°`, `270°`).
+- **Tilted Orbital Assembly:** Elliptical 3D orbital plane with 3 traveling photon beacons orbiting with perspective depth (including an amber energy marker).
+- **Sparse Ambient Motes & Ground Halo:** 32 subtle drifting particles and a radial ground illumination field.
+- **Dynamic State Animations:**
+  - `Idle`: Smooth, calm rotations with steady breathing core.
+  - `Listening`: Expanded outer ring, faster orbital beacon, responsive audio waveform.
+  - `Thinking`: Accelerated counter-rotations and active nucleus calculations.
+  - `Speaking`: Harmonious wave pulses across rings and glowing energy bursts.
+- **2D Vector Fallback Reactor:** If WebGL is unavailable or restricted by sandbox policies, NOVA automatically mounts an SVG/CSS vector replica with identical geometry, honestly marked as `FALLBACK ENGINE: 2D VECTOR REACTOR (WebGL restricted/unavailable)`.
+- **Genuinely Measured FPS:** Only real frames measured across 1000ms intervals are displayed (`performance.now()`); no invented frequencies or fake measurements.
 
 ---
 
-## 🏛️ Workspace Architecture & Layout
+## 🏛️ Command Centre Layout & Surrounding Panels
 
-- **Asymmetric Desktop Composition:** ~45% left stage dedicated to the 3D sculpture, ~55% right dedicated to the high-legibility Conversation Studio.
-- **Visible Navigation Dock:** Left rail with instant access to:
-  1. `Assistant` (Main 3D workspace)
-  2. `Website Studio` (Autonomous website sandbox)
-  3. `History` (Conversation archive)
-  4. `Settings` (Voice persona, motion, export)
-- **Empty State Pathways:** Prominently asks **“What shall we create?”** with an introductory briefing and three starter prompt pathways that dispatch immediately upon click.
-- **Spacious Anchored Composer:** Docked firmly below the conversation stream with auto-expanding textarea, microphone input, and instant send controls.
-- **Clean Editorial Typography:** Sans-serif headings and body text (`Inter` & `Space Grotesk`) with monospace reserved exclusively for code blocks and technical metadata.
-- **Robust Independent Mounting:** Navigation, chat, studio, and history modules initialize independently; any 3D failure degrades gracefully to the fallback without blanking the screen.
-- **Mobile Responsive Layout:** Stacks cleanly with a compact 200px sculpture above the conversation, anchored composer, and a convenient bottom dock.
+The workspace uses a balanced 3-column holographic command grid with deep navy glass (`#020612`, `#040a18`) and electric cyan accents (`#00f0ff`, `#38bdf8`):
+
+### 1. Left Operational Column (280px)
+- **Panel 1 — Sessions Archive:** Real-time log of stored conversations from `localStorage`, timestamp, message count, active selection highlighting, and a quick "New Session" button.
+- **Panel 2 — Acoustic Synthesis:** Live voice telemetry powered by the Web Speech API with persona selection, speech velocity slider (`0.7x – 1.4x`), diagnostic "Test Audio" synthesis, and a manual "Stop" button.
+
+### 2. Center Command Column (Flex 1)
+- **Holographic Reactor Stage:** Centered circular energy core (~45–55% workspace height) with reticle corner brackets, coordinate tags, audio waveform status pill, and camera controls.
+- **Animated Holographic Connection Bus:** Dynamic data stream connecting the core to the transmission hub.
+- **Latest Transmission Preview Capsule:** Displays a sleek live summary of the most recent response with timestamp and an **"EXPAND STREAM [↗]"** action.
+- **Central Command Composer:** Bottom-anchored message composer with auto-growing textarea, voice input mic toggle, send trigger, and speech stop control.
+
+### 3. Right Intelligence Column (280px)
+- **Panel 3 — System Telemetry:** Live event stream capturing application bootstrap, graphics state changes, audio synthesis, memory events, and user queries with millisecond timestamps.
+- **Panel 4 — Operations Matrix:** Fast-action grid offering one-click access to the Website Studio, History Archive, System Preferences, and Session Reset.
+
+### 4. Expandable Conversation Drawer
+- Keeps the default dashboard clean and focused on the reactor while allowing full access to long multi-turn conversations and large code repositories.
+- Includes full markdown formatting, syntax code blocks with **"Copy"** buttons, text-to-speech replay, and JSON export.
+- Minimizes smoothly back to the holographic dashboard with a single click.
 
 ---
 
@@ -58,89 +68,58 @@ The centerpiece is a procedural Three.js sculpture engineered from mathematical 
 
 ### Prerequisites
 - Node.js (v18+ recommended)
-- npm (v9+)
+- Modern web browser (Chrome, Edge, Firefox, Safari)
 
 ### Installation & Development
 ```bash
-# 1. Install dependencies
+# Clone repository
+git clone https://github.com/sohammridha3-collab/NOVA.git
+cd NOVA
+
+# Install dependencies
 npm install
 
-# 2. Launch Vite development server
+# Start local Vite development server
 npm run dev
 ```
 
-The application will be live at `http://localhost:5173/`.
+Open `http://localhost:5173/` in your browser.
 
-### Production Build & Preview
+### Automated Smoke Tests (Headless Browser)
+Runs the automated test suite testing the 3D reactor, fallback vector engine, 4 surrounding panels, drawer, and simulated streaming chat:
 ```bash
-# Build optimized production bundle
-npm run build
+npm run test:smoke
+```
 
-# Preview the production build locally
+### Production Build
+```bash
+npm run build
 npm run preview
 ```
 
 ---
 
-## 🔍 Feature Matrix: Working vs. Simulated vs. Future Backend
+## 🔌 Connecting to a Real Backend
 
-| Feature | Implementation Status | Technical Details |
-|---|---|---|
-| **Living Intelligence 3D Object** | **Real 3D Engine** | Procedural Three.js scene, pointer parallax tilt, smooth state transitions (`Idle`, `Listening`, `Thinking`, `Speaking`), genuine FPS counter. |
-| **Voice Input (STT)** | **Working Browser API** | Real Web Speech `SpeechRecognition`. Activated strictly when the mic button is clicked. Handles errors, unsupported browsers, and permission denial gracefully. |
-| **Voice Output (TTS)** | **Working Browser API** | Real Web Speech `SpeechSynthesis`. Configurable voice persona, speed multiplier, mute toggle, and an active **Stop** speech button. |
-| **Local Conversation History** | **Working Persistence** | Stored in `localStorage`. Full search filter, multi-session switching, individual deletion, and bulk "Clear All History" with safety confirmation. |
-| **Website Studio** | **Working Sandbox** | Sandboxed `<iframe>` environment with desktop/tablet/mobile device switcher, reload action, and new-tab preview. |
-| **Curated Website Template** | **Showcase Asset** | Bundled responsive luxury dining website (**"AURA — Gastronomy in Void"**) with Michelin accreditation and tasting menu cards. Explicitly labelled as a curated sample. |
-| **AI Assistant Responses** | **Simulated Local** | Generated by `src/services/apiAdapter.js` using contextual knowledge and simulated token streaming. Every response carries a clear `SIMULATED • LOCAL` badge. |
-| **Backend Integration** | **Drop-in Ready** | Pre-architected adapter ready to switch from demo mock data to a live Node.js/Express `POST /api/chat` endpoint. |
+By default, NOVA runs in **Demo Mode** using `src/services/apiAdapter.js` to simulate intelligent streaming responses locally with zero backend setup.
 
----
-
-## 🔌 Connecting to a Live Node.js / Express Backend
-
-Connecting a live LLM backend (Gemini, Claude, OpenAI, Ollama) requires changing only one configuration flag:
-
-### 1. Backend Endpoint Expectation
-Create an Express route (e.g. `POST /api/chat`):
-
-```javascript
-// server.js (Node.js / Express)
-import express from 'express';
-import cors from 'cors';
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.post('/api/chat', async (req, res) => {
-  const { prompt, history } = req.body;
-  
-  // Forward to your AI provider (e.g., Gemini API)
-  // const reply = await callLlm(prompt, history);
-  res.json({ reply: "Hello from live backend!" });
-});
-
-app.listen(5000, () => console.log('NOVA backend running on http://localhost:5000'));
-```
-
-### 2. Update Frontend Adapter
-In `src/services/apiAdapter.js`:
-
-```javascript
-export class ApiAdapter {
-  constructor() {
-    this.isDemoMode = false; // <-- Switch from true to false
-    this.backendEndpoint = 'http://localhost:5000/api/chat';
-  }
-}
-```
+To connect a Node.js / Express or Python backend:
+1. Open [src/services/apiAdapter.js](file:///c:/Users/Sayan%20Mridha/Desktop/NOVA/src/services/apiAdapter.js).
+2. Set `isDemoMode = false` and specify your `endpoint` (e.g. `http://localhost:3000/api/chat`).
+3. Ensure your server accepts `POST` requests and streams chunks or returns a JSON response:
+   ```json
+   {
+     "message": "Assistant response text",
+     "timestamp": "2026-11-04T09:00:00Z"
+   }
+   ```
 
 ---
 
-## ♿ Accessibility & Ergonomics
+## 🛡️ Resilience & Engineering Standards
 
-- **Standard Focus Visibility:** All buttons, inputs, and links include `:focus-visible` cyan outline rings.
-- **Keyboard Shortcuts:** `Enter` sends message; `Shift + Enter` creates a newline; `Esc` dismisses modals.
-- **Reduced Motion:** Respects user's OS `prefers-reduced-motion` and provides a manual "Pause Motion" header toggle.
-- **Speech Privacy:** Microphone is activated **strictly** when explicitly triggered by the user, and recognition auto-terminates after speech ends.
+- **Resilient Graphics Loading:** Essential UI (Navigation, Panels, Composer, Drawer) mounts before 3D initialization. If WebGL is unavailable, the 2D vector fallback takes over without ever presenting a blank screen.
+- **Zero Hallucinated Numbers:** Frequencies and FPS readings reflect actual measured performance.
+- **Full Offline Persistence:** Stored locally in `localStorage` with export capabilities.
+- **Accessibility & Motion Preferences:** Honors `prefers-reduced-motion` and provides direct "Pause Motion" quick toggles.
+- **Cross-Platform Responsive Design:** Seamlessly adapts from 4K ultrawide monitors down to 390px mobile screens.

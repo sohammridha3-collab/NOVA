@@ -129,12 +129,25 @@ export class SettingsModal {
             <div class="setting-row">
               <div class="setting-info">
                 <span class="setting-label">Interface Accent Aura</span>
-                <span class="setting-desc">Color wavelength of HUD and Neural Core glow</span>
+                <span class="setting-desc">Color wavelength of HUD and sculpture glow</span>
               </div>
               <select class="setting-select" id="settingThemeAccent">
-                <option value="cyan" ${settings.themeAccent === 'cyan' ? 'selected' : ''}>Ice Blue (Default)</option>
-                <option value="violet" ${settings.themeAccent === 'violet' ? 'selected' : ''}>Nebula Violet</option>
-                <option value="emerald" ${settings.themeAccent === 'emerald' ? 'selected' : ''}>Bioluminescent Emerald</option>
+                <option value="cyan" ${settings.themeAccent === 'cyan' ? 'selected' : ''}>Electric Cyan (Default)</option>
+                <option value="violet" ${settings.themeAccent === 'violet' ? 'selected' : ''}>Amethyst Violet</option>
+                <option value="amber" ${settings.themeAccent === 'amber' ? 'selected' : ''}>Warm Amber</option>
+              </select>
+            </div>
+
+            <!-- 3D Graphics Quality -->
+            <div class="setting-row">
+              <div class="setting-info">
+                <span class="setting-label">Rendering Quality</span>
+                <span class="setting-desc">Resolution density and particle volume</span>
+              </div>
+              <select class="setting-select" id="settingQuality">
+                <option value="high" ${settings.quality === 'high' || !settings.quality ? 'selected' : ''}>High (Full DPR & Particles)</option>
+                <option value="medium" ${settings.quality === 'medium' ? 'selected' : ''}>Medium (Balanced)</option>
+                <option value="low" ${settings.quality === 'low' ? 'selected' : ''}>Performance (Low DPR & Battery Saver)</option>
               </select>
             </div>
           </div>
@@ -268,8 +281,25 @@ export class SettingsModal {
       const theme = e.target.value;
       storage.saveSettings({ themeAccent: theme });
       document.documentElement.setAttribute('data-theme-accent', theme);
+      if (this.neuralCore) {
+        this.neuralCore.setThemeAccent(theme);
+      }
+      this.onSettingsUpdated({ themeAccent: theme });
       toast.info(`Theme accent changed to ${theme}.`);
       this.onActivityLogged(`Applied theme accent: ${theme}`);
+    });
+
+    // Graphics Quality
+    const qualitySelect = this.backdrop.querySelector('#settingQuality');
+    qualitySelect.addEventListener('change', (e) => {
+      const quality = e.target.value;
+      storage.saveSettings({ quality });
+      if (this.neuralCore) {
+        this.neuralCore.setQuality(quality);
+      }
+      this.onSettingsUpdated({ quality });
+      toast.info(`Rendering quality set to ${quality}.`);
+      this.onActivityLogged(`Rendering quality set to: ${quality}`);
     });
 
     // Export Data JSON

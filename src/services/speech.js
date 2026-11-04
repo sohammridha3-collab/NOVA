@@ -184,12 +184,18 @@ export class SpeechService {
   }
 
   speak(text, { voiceURI, rate = 1.0, pitch = 1.0 } = {}) {
-    if (!this.synth || this.isMuted) return;
+    if (!this.synth || this.isMuted) {
+      if (this.onSpeakingStateChange) this.onSpeakingStateChange(false);
+      return false;
+    }
 
     this.stopSpeaking();
 
     const cleanText = this.cleanTextForSpeech(text);
-    if (!cleanText) return;
+    if (!cleanText) {
+      if (this.onSpeakingStateChange) this.onSpeakingStateChange(false);
+      return false;
+    }
 
     try {
       const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -221,9 +227,11 @@ export class SpeechService {
 
       this.currentUtterance = utterance;
       this.synth.speak(utterance);
+      return true;
     } catch (e) {
       console.warn('[Speech] Could not speak text:', e);
       if (this.onSpeakingStateChange) this.onSpeakingStateChange(false);
+      return false;
     }
   }
 

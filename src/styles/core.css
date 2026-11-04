@@ -1,9 +1,88 @@
 /* ==========================================================================
-   NOVA — 3D Artifact Digital Observatory & HUD Overlay
+   NOVA — Circular Holographic Energy Reactor & HUD Telemetry
+   Cinematic Sci-Fi 3D Viewport & Procedural Fallback Engine
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   HUD Telemetry Overlays
+   Reactor Stage Container (~45-55% Desktop Workspace Height)
+   -------------------------------------------------------------------------- */
+.holographic-reactor-stage {
+  position: relative;
+  flex: 1 1 52%;
+  min-height: 280px;
+  max-height: 520px;
+  width: 100%;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.08) 0%, rgba(6, 16, 40, 0.6) 45%, rgba(2, 6, 18, 0.95) 85%);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.12), inset 0 0 40px rgba(0, 240, 255, 0.05);
+  overflow: hidden;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.neural-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  cursor: grab;
+  outline: none;
+  z-index: 2;
+}
+
+.neural-canvas:active {
+  cursor: grabbing;
+}
+
+/* --------------------------------------------------------------------------
+   HUD Calibration Overlays & Reticles
+   -------------------------------------------------------------------------- */
+.reactor-hud-calibrations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.reticle-corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--accent-cyan);
+  opacity: 0.65;
+  filter: drop-shadow(0 0 4px var(--accent-cyan));
+}
+
+.reticle-tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+.reticle-tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+.reticle-bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+.reticle-br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+
+.coord-tag {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--accent-cyan-light);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.tag-top {
+  top: 10px;
+  left: 32px;
+}
+
+.tag-bot {
+  bottom: 10px;
+  right: 32px;
+}
+
+/* --------------------------------------------------------------------------
+   HUD Controls & Floating Status Pill
    -------------------------------------------------------------------------- */
 .core-hud-overlay {
   position: absolute;
@@ -12,7 +91,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 1.25rem;
+  padding: 1rem 1.25rem;
   z-index: 10;
 }
 
@@ -23,18 +102,18 @@
   pointer-events: auto;
 }
 
-/* Minimal Floating State Pill */
+/* Holographic State Pill */
 .core-status-pill {
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
-  background: rgba(6, 9, 18, 0.82);
+  background: rgba(3, 7, 18, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-medium);
   padding: 0.35rem 0.85rem;
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
   transition: all var(--transition-fast);
 }
 
@@ -49,7 +128,7 @@
 
 .core-status-text {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--text-primary);
@@ -63,23 +142,23 @@
 }
 .core-status-pill[data-state="listening"] .core-status-dot {
   background: var(--status-listening);
-  box-shadow: 0 0 10px var(--status-listening);
-  animation: pulse-rapid 1s infinite alternate;
+  box-shadow: 0 0 12px var(--status-listening);
+  animation: pulse-rapid 0.9s infinite alternate;
 }
 .core-status-pill[data-state="thinking"] .core-status-dot {
   background: var(--status-thinking);
-  box-shadow: 0 0 10px var(--status-thinking);
-  animation: pulse-rapid 0.6s infinite alternate;
+  box-shadow: 0 0 12px var(--status-thinking);
+  animation: pulse-rapid 0.5s infinite alternate;
 }
 .core-status-pill[data-state="speaking"] .core-status-dot {
   background: var(--accent-cyan);
-  box-shadow: 0 0 12px var(--accent-cyan);
-  animation: pulse-rapid 0.45s infinite alternate;
+  box-shadow: 0 0 14px var(--accent-cyan);
+  animation: pulse-rapid 0.4s infinite alternate;
 }
 
 @keyframes pulse-rapid {
   from { transform: scale(0.85); opacity: 0.5; }
-  to { transform: scale(1.25); opacity: 1; }
+  to { transform: scale(1.3); opacity: 1; }
 }
 
 /* Audio Waveform Bars */
@@ -122,23 +201,25 @@
 }
 
 .hud-tool-btn {
-  background: rgba(6, 9, 18, 0.75);
+  background: rgba(4, 10, 26, 0.8);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border-glass);
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
-  padding: 0.3rem 0.6rem;
+  padding: 0.3rem 0.65rem;
   font-family: var(--font-mono);
   font-size: 0.66rem;
   gap: 0.35rem;
   letter-spacing: 0.04em;
+  transition: all var(--transition-fast);
 }
 
 .hud-tool-btn:hover {
   color: var(--text-primary);
-  background: rgba(0, 240, 255, 0.08);
+  background: rgba(0, 240, 255, 0.1);
   border-color: var(--border-subtle);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
 }
 
 /* HUD Bottom Observatory Readout */
@@ -155,6 +236,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  color: var(--accent-cyan);
 }
 
 .hud-hint {
@@ -162,45 +244,167 @@
   letter-spacing: 0.04em;
 }
 
-@media (max-width: 600px) {
-  .hud-bottom-row {
+@media (max-width: 768px) {
+  .coord-tag {
     display: none;
+  }
+  .hud-hint {
+    display: none;
+  }
+  .core-status-text {
+    font-size: 0.62rem;
+  }
+  .core-status-pill {
+    padding: 0.25rem 0.55rem;
+    gap: 0.45rem;
   }
 }
 
 /* --------------------------------------------------------------------------
-   Hardware-Accelerated Fallback Core (SVG)
+   Animated Holographic Connection Bus
    -------------------------------------------------------------------------- */
-.core-fallback-container {
+.core-connection-bus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  height: 10px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.bus-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.35) 50%, transparent 100%);
+}
+
+.bus-pulse {
+  width: 6px;
+  height: 6px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent-cyan);
+  animation: pulse-bus 2.5s infinite ease-in-out;
+}
+
+@keyframes pulse-bus {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+/* --------------------------------------------------------------------------
+   Circular Holographic Reactor Fallback (2D SVG / CSS)
+   -------------------------------------------------------------------------- */
+.core-fallback-container.holographic-reactor-fallback {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle, #0f172a 0%, #050811 100%);
-  z-index: 5;
+  background: transparent;
+  z-index: 3;
 }
 
-.fallback-svg-living,
-.fallback-svg-artifact {
-  width: 230px;
-  height: 230px;
-  animation: artifact-float 8s ease-in-out infinite alternate;
+.fallback-svg-reactor {
+  width: min(88%, 380px);
+  height: min(88%, 380px);
+  filter: drop-shadow(0 0 15px rgba(0, 240, 255, 0.2));
 }
 
-@keyframes artifact-float {
-  from { transform: translateY(-4px) rotate(0deg); }
-  to { transform: translateY(6px) rotate(2deg); }
+/* Ring Rotations */
+.fallback-svg-reactor .reactor-outer-ring {
+  animation: ring-rotate-cw 45s linear infinite;
 }
 
-.fallback-notice {
-  margin-top: 1rem;
+.fallback-svg-reactor .reactor-mid-ring {
+  animation: ring-rotate-ccw 30s linear infinite;
+}
+
+.fallback-svg-reactor .reactor-inner-ring {
+  animation: ring-rotate-cw 18s linear infinite;
+}
+
+.fallback-svg-reactor .reactor-nucleus-group {
+  animation: nucleus-breath 4s ease-in-out infinite alternate;
+}
+
+.fallback-svg-reactor .orbiting-beacon-1 {
+  animation: beacon-orbit 8s ease-in-out infinite alternate;
+}
+
+@keyframes ring-rotate-cw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ring-rotate-ccw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes nucleus-breath {
+  0% { transform: scale(0.95); opacity: 0.9; }
+  100% { transform: scale(1.06); opacity: 1; }
+}
+
+@keyframes beacon-orbit {
+  0% { transform: translate(0, 0); opacity: 0.6; }
+  100% { transform: translate(30px, 6px); opacity: 1; }
+}
+
+/* State-Aware Fallback Dynamics */
+.holographic-reactor-fallback[data-state="thinking"] .reactor-outer-ring {
+  animation-duration: 15s;
+}
+.holographic-reactor-fallback[data-state="thinking"] .reactor-mid-ring {
+  animation-duration: 10s;
+}
+.holographic-reactor-fallback[data-state="thinking"] .reactor-nucleus-group {
+  animation-duration: 1.2s;
+}
+
+.holographic-reactor-fallback[data-state="speaking"] .reactor-nucleus-group {
+  animation: nucleus-speaking 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes nucleus-speaking {
+  0% { transform: scale(0.92); opacity: 0.8; }
+  100% { transform: scale(1.15); opacity: 1; }
+}
+
+/* Reduced Motion Override */
+.core-fallback-container.paused .reactor-outer-ring,
+.core-fallback-container.paused .reactor-mid-ring,
+.core-fallback-container.paused .reactor-inner-ring,
+.core-fallback-container.paused .reactor-nucleus-group,
+.core-fallback-container.paused .orbiting-beacon-1 {
+  animation: none !important;
+}
+
+/* Honest, Transparent Fallback Tag */
+.fallback-reactor-badge {
+  position: absolute;
+  bottom: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.63rem;
   color: var(--accent-cyan);
-  background: rgba(0, 240, 255, 0.06);
-  padding: 0.25rem 0.75rem;
+  background: rgba(3, 7, 18, 0.9);
+  padding: 0.25rem 0.65rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+  pointer-events: none;
+}
+
+.fallback-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
 }

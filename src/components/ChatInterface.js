@@ -1,7 +1,8 @@
 /**
- * NOVA — Chat Interface Component
- * Manages conversation stream, safe markdown parsing, anchored composer,
- * speech recognition, and text-to-speech audio feedback.
+ * NOVA — Chat Interface Component: Holographic Command Centre
+ * Manages transmission stream, markdown parsing, code copying,
+ * latest response preview capsule, expandable conversation drawer,
+ * and Web Speech STT/TTS coordination.
  */
 
 import { ICONS } from '../utils/icons.js';
@@ -28,201 +29,172 @@ export class ChatInterface {
     this.btnSend = null;
     this.btnMic = null;
     this.btnStopSpeech = null;
+    this.previewText = null;
+    this.previewTimestamp = null;
+    this.conversationDrawer = null;
+    this.btnExpandDrawer = null;
+    this.btnCloseDrawer = null;
+    this.btnDrawerExport = null;
+    this.drawerMsgCount = null;
 
     this.init();
   }
 
   init() {
-    this._renderLayout();
+    this._bindDomElements();
     this._bindEvents();
     this._setupSpeechHooks();
     this.loadActiveSession();
   }
 
-  _renderLayout() {
-    this.container.innerHTML = `
-      <div class="chat-view-container">
-        <!-- Scrollable Messages Area -->
-        <div class="chat-messages-scroll" id="chatScrollArea">
-          <!-- Dynamic messages or welcome screen will be injected here -->
-        </div>
-
-        <!-- Anchored Message Composer -->
-        <div class="anchored-composer-wrapper">
-          <form class="composer-box" id="composerForm">
-            <textarea
-              class="composer-textarea"
-              id="composerTextarea"
-              rows="1"
-              placeholder="Ask NOVA anything, explore code, or click mic..."
-              aria-label="Message input"
-            ></textarea>
-
-            <div class="composer-controls">
-              <!-- Stop Speech Button (Visible while speaking) -->
-              <button
-                type="button"
-                class="btn-stop-speech"
-                id="btnStopSpeech"
-                title="Stop voice output"
-                aria-label="Stop speech"
-              >
-                ${ICONS.stop}
-                <span>Stop</span>
-              </button>
-
-              <!-- Mic Button -->
-              <button
-                type="button"
-                class="icon-btn btn-mic"
-                id="btnMic"
-                title="Voice input (Speech to Text)"
-                aria-label="Toggle voice input"
-              >
-                ${ICONS.mic}
-              </button>
-
-              <!-- Send Button -->
-              <button
-                type="submit"
-                class="icon-btn btn-send"
-                id="btnSend"
-                title="Send message"
-                aria-label="Send message"
-                disabled
-              >
-                ${ICONS.send}
-              </button>
-            </div>
-          </form>
-
-          <div class="composer-footer-note">
-            <span>NOVA &bull; Living Intelligence &bull; Simulated local environment</span>
-            <span>Enter &crarr; Send &bull; Shift+Enter &crarr; Newline</span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    this.scrollArea = this.container.querySelector('#chatScrollArea');
-    this.textarea = this.container.querySelector('#composerTextarea');
-    this.btnSend = this.container.querySelector('#btnSend');
-    this.btnMic = this.container.querySelector('#btnMic');
-    this.btnStopSpeech = this.container.querySelector('#btnStopSpeech');
+  _bindDomElements() {
+    // Look up elements from existing command centre layout
+    this.scrollArea = document.getElementById('chatScrollArea');
+    this.textarea = document.getElementById('composerTextarea');
+    this.btnSend = document.getElementById('btnSend');
+    this.btnMic = document.getElementById('btnMic');
+    this.btnStopSpeech = document.getElementById('btnStopSpeech');
+    this.previewText = document.getElementById('previewText');
+    this.previewTimestamp = document.getElementById('previewTimestamp');
+    this.conversationDrawer = document.getElementById('conversationDrawer');
+    this.btnExpandDrawer = document.getElementById('btnExpandDrawer');
+    this.btnCloseDrawer = document.getElementById('btnCloseDrawer');
+    this.btnDrawerExport = document.getElementById('btnDrawerExport');
+    this.drawerMsgCount = document.getElementById('drawerMsgCount');
   }
 
   _bindEvents() {
-    const form = this.container.querySelector('#composerForm');
+    const form = document.getElementById('composerForm');
+
+    // Drawer expand/close toggles
+    if (this.btnExpandDrawer && this.conversationDrawer) {
+      this.btnExpandDrawer.addEventListener('click', () => {
+        this.openDrawer();
+      });
+    }
+
+    if (this.btnCloseDrawer && this.conversationDrawer) {
+      this.btnCloseDrawer.addEventListener('click', () => {
+        this.closeDrawer();
+      });
+    }
+
+    // Export conversation button
+    if (this.btnDrawerExport) {
+      this.btnDrawerExport.addEventListener('click', () => {
+        this.exportConversation();
+      });
+    }
 
     // Auto-growing textarea
-    this.textarea.addEventListener('input', () => {
-      this.textarea.style.height = 'auto';
-      const newHeight = Math.min(this.textarea.scrollHeight, 120);
-      this.textarea.style.height = `${newHeight}px`;
-      this.btnSend.disabled = !this.textarea.value.trim() || this.isStreaming;
-    });
+    if (this.textarea && this.btnSend) {
+      this.textarea.addEventListener('input', () => {
+        this.textarea.style.height = 'auto';
+        const newHeight = Math.min(this.textarea.scrollHeight, 100);
+        this.textarea.style.height = `${newHeight}px`;
+        this.btnSend.disabled = !this.textarea.value.trim() || this.isStreaming;
+      });
 
-    // Enter to send, Shift+Enter for newline
-    this.textarea.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (!this.btnSend.disabled) {
-          form.dispatchEvent(new Event('submit', { cancelable: true }));
+      // Enter to send, Shift+Enter for newline
+      this.textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          if (!this.btnSend.disabled) {
+            form.dispatchEvent(new Event('submit', { cancelable: true }));
+          }
         }
-      }
-    });
+      });
+    }
 
     // Form submission
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = this.textarea.value.trim();
-      if (!text || this.isStreaming) return;
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = this.textarea.value.trim();
+        if (!text || this.isStreaming) return;
 
-      this.textarea.value = '';
-      this.textarea.style.height = 'auto';
-      this.btnSend.disabled = true;
+        this.textarea.value = '';
+        this.textarea.style.height = 'auto';
+        this.btnSend.disabled = true;
 
-      this.sendMessage(text);
-    });
+        this.sendMessage(text);
+      });
+    }
 
     // Microphone toggle button
-    this.btnMic.addEventListener('click', () => {
-      if (speech.isRecognizing) {
-        speech.stopListening();
-      } else {
-        const started = speech.startListening();
-        if (started) {
-          toast.info('Listening for speech... Speak into your microphone.');
+    if (this.btnMic) {
+      this.btnMic.addEventListener('click', () => {
+        if (speech.isRecognizing) {
+          speech.stopListening();
+        } else {
+          const started = speech.startListening();
+          if (started) {
+            toast.info('Acoustic sensor active. Transmitting speech to command processor...');
+          }
         }
-      }
-    });
+      });
+    }
 
     // Stop Speech button
-    this.btnStopSpeech.addEventListener('click', () => {
-      speech.stopSpeaking();
-      this.btnStopSpeech.classList.remove('active');
-      if (this.neuralCore) this.neuralCore.setState('idle');
-      toast.info('Voice output stopped.');
-    });
+    if (this.btnStopSpeech) {
+      this.btnStopSpeech.addEventListener('click', () => {
+        speech.stopSpeaking();
+        this.btnStopSpeech.classList.remove('active');
+        if (this.neuralCore) this.neuralCore.setState('idle');
+        toast.info('Voice synthesis halted.');
+      });
+    }
 
-    // Global click delegate for code block copying & starter chips
-    this.scrollArea.addEventListener('click', (e) => {
-      // Copy code button
-      const copyBtn = e.target.closest('.copy-code-btn');
-      if (copyBtn) {
-        const codeId = copyBtn.getAttribute('data-code-target');
-        const codeEl = document.getElementById(codeId);
-        if (codeEl) {
-          navigator.clipboard.writeText(codeEl.textContent).then(() => {
-            const copyText = copyBtn.querySelector('.copy-text');
-            if (copyText) copyText.textContent = 'Copied!';
-            toast.success('Code copied to clipboard.');
-            setTimeout(() => {
-              if (copyText) copyText.textContent = 'Copy';
-            }, 2000);
-          }).catch(() => {
-            toast.error('Failed to copy code.');
-          });
+    // Global click delegate for code block copying & starter chips inside drawer
+    if (this.scrollArea) {
+      this.scrollArea.addEventListener('click', (e) => {
+        // Copy code button
+        const copyBtn = e.target.closest('.copy-code-btn');
+        if (copyBtn) {
+          const codeId = copyBtn.getAttribute('data-code-target');
+          const codeEl = document.getElementById(codeId);
+          if (codeEl) {
+            navigator.clipboard.writeText(codeEl.textContent).then(() => {
+              const copyText = copyBtn.querySelector('.copy-text');
+              if (copyText) copyText.textContent = 'Copied!';
+              toast.success('Code copied to clipboard.');
+              setTimeout(() => {
+                if (copyText) copyText.textContent = 'Copy';
+              }, 2000);
+            }).catch(() => {
+              toast.error('Failed to copy code.');
+            });
+          }
+          return;
         }
-        return;
-      }
 
-      // Starter prompt chips
-      const chip = e.target.closest('.starter-chip');
-      if (chip) {
-        const prompt = chip.getAttribute('data-prompt');
-        if (prompt) {
-          this.sendMessage(prompt);
+        // Read aloud message
+        const readBtn = e.target.closest('.btn-speak-msg');
+        if (readBtn) {
+          const text = readBtn.getAttribute('data-text');
+          if (text) {
+            const settings = storage.loadSettings();
+            speech.speak(text, {
+              voiceURI: settings.voiceURI,
+              rate: settings.speechRate,
+              pitch: settings.speechPitch
+            });
+          }
+          return;
         }
-        return;
-      }
-
-      // Read aloud message
-      const readBtn = e.target.closest('.btn-speak-msg');
-      if (readBtn) {
-        const text = readBtn.getAttribute('data-text');
-        if (text) {
-          const settings = storage.loadSettings();
-          speech.speak(text, {
-            voiceURI: settings.voiceURI,
-            rate: settings.speechRate,
-            pitch: settings.speechPitch
-          });
-        }
-        return;
-      }
-    });
+      });
+    }
   }
 
   _setupSpeechHooks() {
     // When browser is listening
     speech.onListeningStateChange = (isListening) => {
       if (isListening) {
-        this.btnMic.classList.add('listening');
+        if (this.btnMic) this.btnMic.classList.add('listening');
         if (this.neuralCore) this.neuralCore.setState('listening');
-        this.onActivityLogged('Voice input: Listening for acoustic input...');
+        this.onActivityLogged('Acoustic sensor active: Listening for speech input...');
       } else {
-        this.btnMic.classList.remove('listening');
+        if (this.btnMic) this.btnMic.classList.remove('listening');
         if (this.neuralCore && this.neuralCore.state === 'listening') {
           this.neuralCore.setState('idle');
         }
@@ -231,24 +203,26 @@ export class ChatInterface {
 
     // Real-time transcript incoming
     speech.onTranscript = (transcript, isFinal) => {
-      this.textarea.value = transcript;
-      this.textarea.style.height = 'auto';
-      this.textarea.style.height = `${Math.min(this.textarea.scrollHeight, 120)}px`;
-      this.btnSend.disabled = !this.textarea.value.trim();
+      if (this.textarea) {
+        this.textarea.value = transcript;
+        this.textarea.style.height = 'auto';
+        this.textarea.style.height = `${Math.min(this.textarea.scrollHeight, 100)}px`;
+        if (this.btnSend) this.btnSend.disabled = !this.textarea.value.trim();
+      }
 
       if (isFinal) {
-        this.onActivityLogged(`Transcript captured: "${transcript.slice(0, 30)}..."`);
+        this.onActivityLogged(`Transcript decoded: "${transcript.slice(0, 30)}..."`);
       }
     };
 
     // Speech synthesis state
     speech.onSpeakingStateChange = (isSpeaking) => {
       if (isSpeaking) {
-        this.btnStopSpeech.classList.add('active');
+        if (this.btnStopSpeech) this.btnStopSpeech.classList.add('active');
         if (this.neuralCore) this.neuralCore.setState('speaking');
-        this.onActivityLogged('Voice synthesis: Speaking response...');
+        this.onActivityLogged('Voice synthesis: Transmitting audio output...');
       } else {
-        this.btnStopSpeech.classList.remove('active');
+        if (this.btnStopSpeech) this.btnStopSpeech.classList.remove('active');
         if (this.neuralCore && this.neuralCore.state === 'speaking') {
           this.neuralCore.setState('idle');
         }
@@ -257,8 +231,23 @@ export class ChatInterface {
 
     speech.onError = (errorMsg) => {
       toast.warning(errorMsg);
-      this.onActivityLogged(`Speech event: ${errorMsg}`);
+      this.onActivityLogged(`Acoustic event: ${errorMsg}`);
     };
+  }
+
+  openDrawer() {
+    if (this.conversationDrawer) {
+      this.conversationDrawer.classList.add('open');
+      this.conversationDrawer.setAttribute('aria-hidden', 'false');
+      this._scrollToBottom();
+    }
+  }
+
+  closeDrawer() {
+    if (this.conversationDrawer) {
+      this.conversationDrawer.classList.remove('open');
+      this.conversationDrawer.setAttribute('aria-hidden', 'true');
+    }
   }
 
   loadActiveSession() {
@@ -266,13 +255,14 @@ export class ChatInterface {
     let session = sessionId ? storage.getSession(sessionId) : null;
 
     if (!session) {
-      session = storage.createSession();
+      session = storage.createSession('Neural Session Alpha');
     }
 
     this.activeSessionId = session.id;
     this.messages = session.messages || [];
     this.renderMessages();
     this.onSessionChanged(session);
+    this._updatePreviewFromMessages();
   }
 
   switchSession(sessionId) {
@@ -283,19 +273,21 @@ export class ChatInterface {
       this.messages = session.messages || [];
       this.renderMessages();
       this.onSessionChanged(session);
-      this.onActivityLogged(`Switched session: ${session.title}`);
+      this._updatePreviewFromMessages();
+      this.onActivityLogged(`Operational context shifted to: "${session.title}"`);
     }
   }
 
   createNewChat() {
-    const newSession = storage.createSession('New Neural Session');
+    const newSession = storage.createSession('New Command Stream');
     this.activeSessionId = newSession.id;
     this.messages = [];
     this.renderMessages();
     this.onSessionChanged(newSession);
-    this.onActivityLogged('Initialized new chat session');
-    toast.success('Started a fresh conversation.');
-    this.textarea.focus();
+    this._updatePreviewFromMessages();
+    this.onActivityLogged('Initialized fresh session stream');
+    toast.success('Started a fresh conversation session.');
+    if (this.textarea) this.textarea.focus();
   }
 
   renderMessages() {
@@ -303,57 +295,29 @@ export class ChatInterface {
 
     if (this.messages.length === 0) {
       this._renderWelcomeScreen();
-      return;
+    } else {
+      this.scrollArea.innerHTML = '';
+      this.messages.forEach((msg) => {
+        const row = this._createMessageRowElement(msg);
+        this.scrollArea.appendChild(row);
+      });
+      this._scrollToBottom();
     }
 
-    this.scrollArea.innerHTML = '';
-    this.messages.forEach((msg) => {
-      const row = this._createMessageRowElement(msg);
-      this.scrollArea.appendChild(row);
-    });
-
-    this._scrollToBottom();
+    if (this.drawerMsgCount) {
+      this.drawerMsgCount.textContent = `${this.messages.length} MESSAGES`;
+    }
   }
 
   _renderWelcomeScreen() {
     this.scrollArea.innerHTML = `
-      <div class="chat-welcome">
-        <div class="welcome-badge">
-          ${ICONS.sparkles}
-          <span>Living Intelligence</span>
+      <div style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
+        <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-cyan); margin-bottom: 0.5rem; letter-spacing: 0.08em;">
+          // CONVERSATION STREAM INITIALIZED //
         </div>
-        <h2 class="welcome-title">
-          What shall we <span class="title-accent">create?</span>
-        </h2>
-        <p class="welcome-desc">
-          I am NOVA, your living intelligence workspace. Query technical architecture, explore algorithmic models, craft web interfaces, or command with voice.
+        <p style="font-size: 0.88rem; max-width: 480px; margin: 0 auto; line-height: 1.5;">
+          No previous transmissions logged in this session. Dispatch a command from the central composer to begin technical architecture synthesis.
         </p>
-
-        <div class="starter-prompts">
-          <div class="starter-chip" data-prompt="Create the conceptual design for a luxury Michelin-star restaurant called AURA">
-            <div class="chip-title">
-              <span>Luxury Restaurant Design</span>
-              ${ICONS.studio}
-            </div>
-            <span class="chip-subtitle">Brand identity, sequence of service, and interactive reservation flow</span>
-          </div>
-
-          <div class="starter-chip" data-prompt="Explain Quantum Key Distribution and BB84 protocol with simulation code">
-            <div class="chip-title">
-              <span>Quantum Cryptography</span>
-              ${ICONS.sparkles}
-            </div>
-            <span class="chip-subtitle">Wavefunction collapse, photon polarization, and security proofs</span>
-          </div>
-
-          <div class="starter-chip" data-prompt="Analyze the architecture of a high-throughput event-driven system">
-            <div class="chip-title">
-              <span>System Architecture</span>
-              ${ICONS.cpu}
-            </div>
-            <span class="chip-subtitle">Kafka streaming, backpressure control, and distributed consensus</span>
-          </div>
-        </div>
       </div>
     `;
   }
@@ -413,10 +377,29 @@ export class ChatInterface {
     return row;
   }
 
+  _updatePreviewFromMessages() {
+    if (!this.previewText) return;
+
+    if (this.messages.length === 0) {
+      this.previewText.textContent = 'NOVA circular holographic reactor online. Initialize technical architecture, synthesize models, or transmit instructions below.';
+      if (this.previewTimestamp) this.previewTimestamp.textContent = 'Nominal';
+      return;
+    }
+
+    const lastMsg = this.messages[this.messages.length - 1];
+    const previewExcerpt = lastMsg.content.replace(/```[\s\S]*?```/g, '[Code Snippet]').replace(/#+\s/g, '').trim();
+    this.previewText.textContent = previewExcerpt.slice(0, 160) + (previewExcerpt.length > 160 ? '...' : '');
+
+    if (this.previewTimestamp) {
+      const timeStr = new Date(lastMsg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this.previewTimestamp.textContent = timeStr;
+    }
+  }
+
   sendMessage(text) {
     if (!text.trim() || this.isStreaming) return;
 
-    if (this.messages.length === 0) {
+    if (this.messages.length === 0 && this.scrollArea) {
       this.scrollArea.innerHTML = '';
     }
 
@@ -429,96 +412,159 @@ export class ChatInterface {
     this.messages.push(userMsg);
     storage.updateSessionMessages(this.activeSessionId, this.messages);
 
-    const userRow = this._createMessageRowElement(userMsg);
-    this.scrollArea.appendChild(userRow);
-    this._scrollToBottom();
+    if (this.scrollArea) {
+      const userRow = this._createMessageRowElement(userMsg);
+      this.scrollArea.appendChild(userRow);
+      this._scrollToBottom();
+    }
 
-    this.onActivityLogged(`Dispatched query: "${text.slice(0, 32)}..."`);
+    if (this.drawerMsgCount) {
+      this.drawerMsgCount.textContent = `${this.messages.length} MESSAGES`;
+    }
+
+    this.onActivityLogged(`Command dispatched: "${text.slice(0, 32)}..."`);
 
     // Prepare assistant streaming placeholder
     this.isStreaming = true;
-    this.btnSend.disabled = true;
+    if (this.btnSend) this.btnSend.disabled = true;
 
-    const assistantRow = document.createElement('div');
-    assistantRow.className = 'message-row assistant';
-    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (this.previewText) {
+      this.previewText.textContent = 'Synthesizing response through holographic reactor core...';
+    }
+    if (this.previewTimestamp) {
+      this.previewTimestamp.textContent = 'Calculating';
+    }
 
-    assistantRow.innerHTML = `
-      <div class="message-avatar" aria-label="NOVA">${ICONS.assistant}</div>
-      <div class="message-bubble-wrap">
-        <div class="message-meta">
-          <span>NOVA CORE</span>
-          <span>&bull;</span>
-          <span>${timeStr}</span>
-          <span class="simulated-pill">SIMULATED &bull; LOCAL</span>
-        </div>
-        <div class="message-bubble">
-          <div class="typing-indicator">
-            <span class="typing-dot"></span>
-            <span class="typing-dot"></span>
-            <span class="typing-dot"></span>
+    let assistantRow = null;
+    let bubble = null;
+
+    if (this.scrollArea) {
+      assistantRow = document.createElement('div');
+      assistantRow.className = 'message-row assistant';
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      assistantRow.innerHTML = `
+        <div class="message-avatar" aria-label="NOVA">${ICONS.assistant}</div>
+        <div class="message-bubble-wrap">
+          <div class="message-meta">
+            <span>NOVA CORE</span>
+            <span>&bull;</span>
+            <span>${timeStr}</span>
+            <span class="simulated-pill">SIMULATED &bull; LOCAL</span>
+          </div>
+          <div class="message-bubble">
+            <div class="typing-indicator">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
 
-    this.scrollArea.appendChild(assistantRow);
-    this._scrollToBottom();
-
-    const bubble = assistantRow.querySelector('.message-bubble');
+      this.scrollArea.appendChild(assistantRow);
+      this._scrollToBottom();
+      bubble = assistantRow.querySelector('.message-bubble');
+    }
 
     api.sendMessageStream({
       prompt: text,
       history: this.messages,
       onStartThinking: () => {
         if (this.neuralCore) this.neuralCore.setState('thinking');
-        this.onActivityLogged('Artifact state: THINKING (Orbital sequence active)');
+        this.onActivityLogged('Reactor state: THINKING (Ring velocities accelerating)');
       },
       onChunk: (accumulated) => {
-        bubble.innerHTML = renderMarkdown(accumulated);
-        this._scrollToBottom();
+        if (bubble) {
+          bubble.innerHTML = renderMarkdown(accumulated);
+          this._scrollToBottom();
+        }
+        if (this.previewText) {
+          const clean = accumulated.replace(/```[\s\S]*?```/g, '[Code Snippet]').replace(/#+\s/g, '').trim();
+          this.previewText.textContent = clean.slice(0, 160) + (clean.length > 160 ? '...' : '');
+        }
       },
       onComplete: (finalMsg) => {
         this.isStreaming = false;
-        this.btnSend.disabled = !this.textarea.value.trim();
+        if (this.btnSend && this.textarea) {
+          this.btnSend.disabled = !this.textarea.value.trim();
+        }
 
-        bubble.innerHTML = renderMarkdown(finalMsg.content);
+        if (bubble) {
+          bubble.innerHTML = renderMarkdown(finalMsg.content);
+        }
 
-        const wrap = assistantRow.querySelector('.message-bubble-wrap');
-        const actions = document.createElement('div');
-        actions.className = 'message-actions-toolbar';
-        actions.innerHTML = `
-          <button class="action-mini-btn btn-speak-msg" data-text="${this._escapeHtml(finalMsg.content)}" title="Read message aloud">
-            ${ICONS.volume}
-            <span>Listen</span>
-          </button>
-        `;
-        wrap.appendChild(actions);
+        if (assistantRow) {
+          const wrap = assistantRow.querySelector('.message-bubble-wrap');
+          const actions = document.createElement('div');
+          actions.className = 'message-actions-toolbar';
+          actions.innerHTML = `
+            <button class="action-mini-btn btn-speak-msg" data-text="${this._escapeHtml(finalMsg.content)}" title="Read message aloud">
+              ${ICONS.volume}
+              <span>Listen</span>
+            </button>
+          `;
+          wrap.appendChild(actions);
+        }
 
         this.messages.push(finalMsg);
         storage.updateSessionMessages(this.activeSessionId, this.messages);
         this.onSessionChanged(storage.getSession(this.activeSessionId));
-        this.onActivityLogged('Response stream complete');
+        this._updatePreviewFromMessages();
+        this.onActivityLogged('Transmission complete: Response synthesized');
+
+        if (this.drawerMsgCount) {
+          this.drawerMsgCount.textContent = `${this.messages.length} MESSAGES`;
+        }
 
         const settings = storage.loadSettings();
-        if (settings.ttsEnabled) {
-          speech.speak(finalMsg.content, {
+        if (settings.ttsEnabled && !speech.isMuted) {
+          const spoke = speech.speak(finalMsg.content, {
             voiceURI: settings.voiceURI,
             rate: settings.speechRate,
             pitch: settings.speechPitch
           });
+          if (!spoke && this.neuralCore) {
+            this.neuralCore.setState('idle');
+          }
         } else {
           if (this.neuralCore) this.neuralCore.setState('idle');
         }
       },
       onError: (err) => {
         this.isStreaming = false;
-        this.btnSend.disabled = !this.textarea.value.trim();
-        bubble.innerHTML = `<p style="color: var(--status-error);">Error processing response: ${this._escapeHtml(err)}</p>`;
+        if (this.btnSend && this.textarea) {
+          this.btnSend.disabled = !this.textarea.value.trim();
+        }
+        if (bubble) {
+          bubble.innerHTML = `<p style="color: var(--status-error);">Error processing response: ${this._escapeHtml(err)}</p>`;
+        }
         if (this.neuralCore) this.neuralCore.setState('idle');
         toast.error('Simulation streaming failed.');
       }
     });
+  }
+
+  exportConversation() {
+    if (this.messages.length === 0) {
+      toast.info('No messages to export in current session.');
+      return;
+    }
+
+    const session = storage.getSession(this.activeSessionId);
+    const title = session ? session.title : 'NOVA_Transmission';
+    const jsonStr = JSON.stringify(this.messages, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Conversation exported to JSON.');
+    this.onActivityLogged(`Exported session: "${title}"`);
   }
 
   _scrollToBottom() {

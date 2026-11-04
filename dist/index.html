@@ -3,23 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="description" content="NOVA — Living Intelligence. Sculptural 3D AI Workspace & Digital Studio." />
-  <meta name="theme-color" content="#040714" />
-  <title>NOVA — Living Intelligence</title>
+  <meta name="description" content="NOVA — Holographic 3D AI Command Centre & Digital Studio." />
+  <meta name="theme-color" content="#030712" />
+  <title>NOVA — Holographic AI Command Centre</title>
   
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-  <!-- Google Fonts: Space Grotesk & Inter & JetBrains Mono -->
+  <!-- Google Fonts: Optional display=swap with system fallbacks in CSS -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
   <!-- Core Stylesheets -->
-  <script type="module" crossorigin src="/assets/index-QUpGaw-m.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/three-kYn9Lxq7.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-kf9rYmXR.css">
+  <script type="module" crossorigin src="/assets/index-CPTtOKQh.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DKjnmAGU.css">
 </head>
 <body>
+  <!-- Visible Startup Error Notice (Unhidden only if catastrophic JS failure occurs) -->
+  <div id="startupErrorNotice" class="startup-error-banner" role="alert" style="display: none;">
+    <div class="startup-error-content">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>Application startup encountered an unexpected issue. Please ensure the app is running via the local Vite dev server.</span>
+      <button type="button" class="btn-error-retry" onclick="window.location.reload()">Reload</button>
+    </div>
+  </div>
+
   <div id="app-shell">
     <!-- Top Refined Header -->
     <header class="app-header">
@@ -31,13 +39,13 @@
         <div class="brand-meta">
           <div class="brand-title">
             <span>NOVA</span>
-            <span class="badge-version">v3.0</span>
+            <span class="badge-version">v4.0</span>
           </div>
-          <span class="brand-subtitle">Living Intelligence</span>
+          <span class="brand-subtitle">Holographic Command Centre</span>
         </div>
       </div>
 
-      <!-- Center Quiet Demo Status Badge -->
+      <!-- Center Demo Status Badge -->
       <div class="header-center">
         <button
           type="button"
@@ -85,7 +93,7 @@
           type="button"
           class="icon-btn"
           id="btnHeaderSettings"
-          title="Open system settings"
+          title="Open system preferences"
           aria-label="Settings"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -99,7 +107,7 @@
           type="button"
           class="icon-btn mobile-menu-btn"
           id="btnMobileMenu"
-          title="Open mobile menu"
+          title="Open mobile navigation"
           aria-label="Toggle menu"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -115,18 +123,133 @@
     <div class="app-body">
       <!-- Visible Left Slim Vertical Navigation Dock -->
       <aside class="app-sidebar" id="appSidebar" aria-label="Main Navigation">
-        <!-- Rendered by Navigation.js: Assistant, Studio, History, Settings -->
+        <div class="sidebar-nav-group">
+          <button type="button" class="nav-item active" data-view="assistant" title="Holographic Command Centre" aria-label="Assistant">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg></span>
+          </button>
+          <button type="button" class="nav-item" data-view="studio" title="Autonomous Website Studio" aria-label="Website Studio">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></span>
+          </button>
+          <button type="button" class="nav-item" data-view="history" title="Conversation Archive" aria-label="History">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          </button>
+          <button type="button" class="nav-item" data-action="settings" title="System Preferences" aria-label="Settings">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          </button>
+        </div>
+        <div class="sidebar-footer">
+          <button type="button" class="nav-item" id="btnSidebarNewChat" title="Start fresh conversation" aria-label="New Conversation" style="background: rgba(0, 240, 255, 0.08); border-color: var(--border-subtle); color: var(--accent-cyan);">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+          </button>
+        </div>
       </aside>
 
       <!-- Center Main Workspace -->
       <main class="main-workspace" id="mainWorkspace">
-        <!-- View 1: Assistant Workspace (45% 3D Sculpture / 55% Conversation Studio) -->
+        <!-- View 1: Holographic Command Centre (Central Reactor + 4 Surrounding Panels + Expandable Drawer) -->
         <div class="workspace-view active" id="viewAssistant">
-          <div class="assistant-asymmetric-grid">
-            <!-- Left Column (approx 45%): 3D Sculpture Stage -->
-            <section class="observatory-stage-col" aria-label="Living Intelligence 3D Viewport">
-              <div class="neural-stage-container" id="neuralStageContainer">
-                <!-- 3D Canvas injected by NeuralCore.js -->
+          <div class="holographic-command-grid">
+            
+            <!-- LEFT COLUMN: 2 Compact Panels (Sessions Archive + Acoustic Synthesis) -->
+            <aside class="command-col command-col-left" aria-label="Operational Memory and Voice Controls">
+              <!-- Panel 1: SESSIONS ARCHIVE -->
+              <section class="holographic-panel panel-sessions" id="panelSessionsArchive">
+                <div class="panel-header">
+                  <div class="panel-title-wrap">
+                    <span class="panel-bracket">[</span>
+                    <span class="panel-tag">ARCHIVE</span>
+                    <span class="panel-title">SESSIONS</span>
+                    <span class="panel-bracket">]</span>
+                  </div>
+                  <button type="button" class="panel-action-btn-mini" id="btnPanelNewSession" title="New Session" aria-label="New Session">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                </div>
+                <div class="panel-body">
+                  <div class="session-list" id="panelSessionList">
+                    <!-- Populated dynamically with stored sessions -->
+                  </div>
+                </div>
+                <div class="panel-footer">
+                  <span class="panel-status-txt" id="panelSessionCount">0 SESSIONS LOGGED</span>
+                </div>
+              </section>
+
+              <!-- Panel 2: ACOUSTIC SYNTHESIS -->
+              <section class="holographic-panel panel-voice" id="panelVoiceControls">
+                <div class="panel-header">
+                  <div class="panel-title-wrap">
+                    <span class="panel-bracket">[</span>
+                    <span class="panel-tag">AUDIO</span>
+                    <span class="panel-title">SYNTHESIS</span>
+                    <span class="panel-bracket">]</span>
+                  </div>
+                  <span class="panel-status-pill" id="voiceStatusIndicator">READY</span>
+                </div>
+                <div class="panel-body voice-panel-body">
+                  <div class="control-row">
+                    <label for="selectVoicePersona">VOICE PERSONA</label>
+                    <select id="selectVoicePersona" class="holographic-select">
+                      <option value="default">NOVA Core (Default)</option>
+                      <option value="neural-female">Neural Female</option>
+                      <option value="neural-male">Neural Male</option>
+                      <option value="system">Host Synthesizer</option>
+                    </select>
+                  </div>
+                  <div class="control-row">
+                    <div class="control-row-header">
+                      <label for="sliderSpeechRate">RATE VELOCITY</label>
+                      <span class="control-val" id="valSpeechRate">1.0x</span>
+                    </div>
+                    <input type="range" id="sliderSpeechRate" min="0.7" max="1.4" step="0.05" value="1.0" class="holographic-slider" />
+                  </div>
+                  <div class="voice-actions-row">
+                    <button type="button" class="btn-holo-sm" id="btnTestVoice" title="Play test audio synthesis">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
+                      <span>Test Audio</span>
+                    </button>
+                    <button type="button" class="btn-holo-sm btn-danger" id="btnPanelStopSpeech" title="Stop speech synthesis">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="5" y="5" rx="2"/></svg>
+                      <span>Stop</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="panel-footer">
+                  <span class="panel-status-txt">WEB SPEECH API ACTIVE</span>
+                </div>
+              </section>
+            </aside>
+
+            <!-- CENTER COLUMN: Central Holographic Reactor (~45-55% height) + Transmission Preview + Composer -->
+            <section class="command-col command-col-center" aria-label="Circular Holographic Reactor Stage and Transmission Hub">
+              
+              <!-- Circular Energy Reactor Stage (occupies ~45-55% desktop workspace height) -->
+              <div class="holographic-reactor-stage" id="neuralStageContainer">
+                <!-- Hairline HUD HUD Calibration Overlay & Corner Brackets -->
+                <div class="reactor-hud-calibrations" aria-hidden="true">
+                  <div class="reticle-corner reticle-tl"></div>
+                  <div class="reticle-corner reticle-tr"></div>
+                  <div class="reticle-corner reticle-bl"></div>
+                  <div class="reticle-corner reticle-br"></div>
+                  <div class="coord-tag tag-top">LAT 52.5200 &bull; LON 13.4050 &bull; AZM 048.2°</div>
+                  <div class="coord-tag tag-bot">FLUX 1.482 T &bull; SPECTRA 472 NM &bull; COHERENCE 99.8%</div>
+                </div>
+
+                <!-- Pre-rendered Fallback SVG Placeholder (Replaced seamlessly by Three.js when loaded) -->
+                <div class="core-fallback-container holographic-reactor-fallback" data-state="idle">
+                  <svg class="fallback-svg-reactor" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Circular Holographic Reactor Fallback">
+                    <circle cx="200" cy="200" r="170" stroke="#00f0ff" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="8 6"/>
+                    <circle cx="200" cy="200" r="135" stroke="#38bdf8" stroke-width="2" stroke-dasharray="60 20 40 20" stroke-linecap="round"/>
+                    <circle cx="200" cy="200" r="95" stroke="#00f0ff" stroke-width="1.5" stroke-dasharray="30 15"/>
+                    <ellipse cx="200" cy="200" rx="140" ry="50" stroke="#00f0ff" stroke-width="1" stroke-opacity="0.4" transform="rotate(-28 200 200)"/>
+                    <circle cx="200" cy="200" r="28" fill="rgba(0, 240, 255, 0.25)" stroke="#ffffff" stroke-width="1.5"/>
+                    <circle cx="200" cy="200" r="6" fill="#ffffff"/>
+                  </svg>
+                  <div class="fallback-reactor-badge">
+                    <span class="fallback-status-dot"></span>
+                    <span class="fallback-status-text">INITIALIZING HOLOGRAPHIC REACTOR...</span>
+                  </div>
+                </div>
 
                 <!-- Minimal Stage HUD Overlay -->
                 <div class="core-hud-overlay">
@@ -134,7 +257,7 @@
                     <!-- State Pill with Audio Waveform -->
                     <div class="core-status-pill" id="coreStatusPill" data-state="idle">
                       <span class="core-status-dot"></span>
-                      <span class="core-status-text" id="coreStatusText">LIVING INTELLIGENCE &bull; IDLE</span>
+                      <span class="core-status-text" id="coreStatusText">REACTOR STATUS &bull; NOMINAL COHERENCE</span>
                       <div class="core-audio-wave" aria-hidden="true">
                         <span class="audio-bar"></span>
                         <span class="audio-bar"></span>
@@ -161,17 +284,151 @@
                       <span id="hudFpsDisplay"></span>
                     </div>
                     <div class="hud-hint">
-                      <span>[Hover or drag to tilt perspective]</span>
+                      <span>[Interactive 3D Stage &bull; Drag to orbit]</span>
                     </div>
                   </div>
                 </div>
               </div>
+
+              <!-- Animated Holographic Connection Bus -->
+              <div class="core-connection-bus" aria-hidden="true">
+                <span class="bus-line bus-left"></span>
+                <span class="bus-pulse"></span>
+                <span class="bus-line bus-right"></span>
+              </div>
+
+              <!-- Latest Transmission Preview Capsule -->
+              <div class="latest-transmission-capsule" id="latestTransmissionPreview">
+                <div class="transmission-capsule-header">
+                  <div class="capsule-label-wrap">
+                    <span class="capsule-beacon"></span>
+                    <span class="capsule-tag">LATEST TRANSMISSION</span>
+                    <span class="capsule-time" id="previewTimestamp">Just now</span>
+                  </div>
+                  <button type="button" class="btn-expand-drawer" id="btnExpandDrawer" title="Expand full conversation thread" aria-label="Expand conversation thread">
+                    <span class="btn-text">EXPAND STREAM</span>
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                  </button>
+                </div>
+                <div class="transmission-preview-body" id="previewBody">
+                  <p class="preview-text" id="previewText">
+                    NOVA circular holographic reactor online. Initialize technical architecture, synthesize models, or transmit instructions below.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Bottom-Center Command Composer -->
+              <div class="central-composer-wrapper">
+                <form class="composer-box" id="composerForm">
+                  <textarea
+                    class="composer-textarea"
+                    id="composerTextarea"
+                    rows="1"
+                    placeholder="Command NOVA (e.g. 'Synthesize a high-throughput architecture')..."
+                    aria-label="Command composer"
+                  ></textarea>
+                  <div class="composer-controls">
+                    <button type="button" class="btn-stop-speech" id="btnStopSpeech" title="Stop voice synthesis" aria-label="Stop speech">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="5" y="5" rx="2"/></svg>
+                      <span>Stop</span>
+                    </button>
+                    <button type="button" class="icon-btn btn-mic" id="btnMic" title="Voice Input" aria-label="Toggle voice input">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    </button>
+                    <button type="submit" class="icon-btn btn-send" id="btnSend" title="Transmit command" aria-label="Send message" disabled>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                  </div>
+                </form>
+                <div class="composer-footer-note">
+                  <span>NOVA COMMAND CENTRE &bull; COHERENCE 100%</span>
+                  <span>Enter &crarr; Transmit &bull; Shift+Enter &crarr; Linebreak</span>
+                </div>
+              </div>
             </section>
 
-            <!-- Right Column (approx 55%): Generous Conversation Area & Anchored Composer -->
-            <section class="conversation-studio-col" id="chatInterfaceContainer" aria-label="Conversation Thread">
-              <!-- Rendered by ChatInterface.js -->
-            </section>
+            <!-- RIGHT COLUMN: 2 Compact Panels (System Telemetry + Command Matrix) -->
+            <aside class="command-col command-col-right" aria-label="System Telemetry and Command Matrix">
+              <!-- Panel 3: SYSTEM TELEMETRY -->
+              <section class="holographic-panel panel-telemetry" id="panelTelemetry">
+                <div class="panel-header">
+                  <div class="panel-title-wrap">
+                    <span class="panel-bracket">[</span>
+                    <span class="panel-tag">LIVE</span>
+                    <span class="panel-title">TELEMETRY</span>
+                    <span class="panel-bracket">]</span>
+                  </div>
+                  <span class="telemetry-live-dot" title="Live stream active"></span>
+                </div>
+                <div class="panel-body telemetry-body">
+                  <div class="telemetry-log-stream" id="telemetryLogStream">
+                    <!-- Live event log lines inserted here -->
+                  </div>
+                </div>
+                <div class="panel-footer">
+                  <span class="panel-status-txt" id="telemetryStatusTag">ALL SUBSYSTEMS NOMINAL</span>
+                </div>
+              </section>
+
+              <!-- Panel 4: COMMAND MATRIX / QUICK ACTIONS -->
+              <section class="holographic-panel panel-matrix" id="panelCommandMatrix">
+                <div class="panel-header">
+                  <div class="panel-title-wrap">
+                    <span class="panel-bracket">[</span>
+                    <span class="panel-tag">OPERATIONS</span>
+                    <span class="panel-title">MATRIX</span>
+                    <span class="panel-bracket">]</span>
+                  </div>
+                </div>
+                <div class="panel-body matrix-body">
+                  <div class="matrix-grid">
+                    <button type="button" class="matrix-tile" id="btnMatrixStudio">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                      <span>Website Studio</span>
+                    </button>
+                    <button type="button" class="matrix-tile" id="btnMatrixHistory">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      <span>History Archive</span>
+                    </button>
+                    <button type="button" class="matrix-tile" id="btnMatrixSettings">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                      <span>Preferences</span>
+                    </button>
+                    <button type="button" class="matrix-tile" id="btnMatrixClearSession">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Reset Context</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="panel-footer">
+                  <span class="panel-status-txt">QUICK OPERATIONS READY</span>
+                </div>
+              </section>
+            </aside>
+          </div>
+
+          <!-- EXPANDABLE FULL CONVERSATION DRAWER -->
+          <div class="conversation-drawer" id="conversationDrawer" aria-hidden="true" role="region" aria-label="Expanded Conversation Stream">
+            <div class="drawer-header">
+              <div class="drawer-title-wrap">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                <span class="drawer-title">CONVERSATION STREAM & CODE REPOSITORY</span>
+                <span class="drawer-count-badge" id="drawerMsgCount">0 MESSAGES</span>
+              </div>
+              <div class="drawer-actions">
+                <button type="button" class="btn-drawer-action" id="btnDrawerExport" title="Export conversation">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Export</span>
+                </button>
+                <button type="button" class="btn-drawer-close" id="btnCloseDrawer" title="Minimize drawer" aria-label="Close conversation drawer">
+                  <span>MINIMIZE</span>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="drawer-body" id="chatScrollArea">
+              <!-- Full message history rendered by ChatInterface.js with markdown, code syntax, copy buttons -->
+            </div>
           </div>
         </div>
 
@@ -188,36 +445,30 @@
     </div>
   </div>
 
-  <!-- Settings Modal (Mounted in DOM) -->
-  <div class="modal-backdrop" id="settingsModal" role="dialog" aria-modal="true" aria-label="System Settings" style="display: none;">
-    <!-- Rendered by SettingsModal.js -->
-  </div>
-
   <!-- Demo Notice Dialog Modal -->
   <div class="modal-backdrop" id="demoNoticeModal" role="dialog" aria-modal="true" aria-label="Demo Mode Details">
     <div class="modal-dialog">
       <div class="modal-header">
         <div class="modal-title-wrap">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fbbf24" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          <span class="modal-title">Frontend Architecture Notice</span>
+          <span class="modal-title">Holographic Command Centre Architecture</span>
         </div>
         <button class="icon-btn" id="btnCloseDemoModal" aria-label="Close dialog">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
         </button>
       </div>
       <div class="modal-body">
         <p style="color: var(--text-primary); font-size: 0.94rem; line-height: 1.6;">
-          You are exploring <strong>NOVA — Living Intelligence</strong>, a premium 3D AI workspace frontend.
+          You are viewing <strong>NOVA — Holographic Command Centre</strong>, inspired by cinematic holographic sci-fi dashboards.
         </p>
 
-        <div style="background: rgba(16, 24, 40, 0.5); border: 1px solid var(--border-subtle); padding: 1rem; border-radius: var(--radius-md); margin-top: 0.75rem;">
-          <h4 style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 0.5rem;">Core Features & Architecture:</h4>
+        <div style="background: rgba(4, 10, 24, 0.7); border: 1px solid var(--border-subtle); padding: 1rem; border-radius: var(--radius-md); margin-top: 0.75rem;">
+          <h4 style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 0.5rem;">Command Centre Subsystems:</h4>
           <ul style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 1.25rem; display: flex; flex-direction: column; gap: 0.35rem;">
-            <li><strong>Signature 3D Sculpture:</strong> Three interwoven, twisted titanium ribbons with illuminated cyan/violet inner edges surrounding a pearl-white luminous crystal.</li>
-            <li><strong>45% / 55% Editorial Workspace:</strong> Generous conversation studio with anchored composer and empty state starter pathways.</li>
-            <li><strong>Browser Speech Engine:</strong> Web Speech API speech recognition and voice synthesis with manual stop controls.</li>
-            <li><strong>Website Studio:</strong> Sandboxed showcase featuring the curated luxury dining template with responsive simulation.</li>
-            <li><strong>Local Persistence:</strong> Full conversation history stored in localStorage with search and export.</li>
+            <li><strong>Central Circular Holographic Reactor:</strong> Layered Three.js nucleus, 3 independently rotating segmented rings, 72 procedural radial ticks, and tilted orbital beacon assembly.</li>
+            <li><strong>Balanced 4-Panel Matrix:</strong> Sessions Archive & Acoustic Synthesis on left; Live Telemetry & Quick Operations on right.</li>
+            <li><strong>Expandable Conversation Stream:</strong> Keeps default dashboard clean and focused on the reactor while providing full rich chat & syntax-highlighted code with copy buttons when expanded.</li>
+            <li><strong>Acoustic Telemetry:</strong> Live voice velocity control, persona selection, and Web Speech API synthesis with manual stop controls.</li>
           </ul>
         </div>
 
@@ -229,7 +480,7 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-primary" id="btnDismissDemoModal">Understood</button>
+        <button class="btn-primary" id="btnDismissDemoModal">Acknowledge</button>
       </div>
     </div>
   </div>

@@ -115,6 +115,7 @@ export class ApiAdapter {
   /**
    * Future Backend Integration Helper
    * When Node.js/Express backend is ready, set isDemoMode = false
+   * Seamlessly supports both streaming text chunks and JSON payload responses.
    */
   async _streamFromLiveBackend(prompt, history, onStartThinking, onChunk, onComplete, onError, isCancelled) {
     try {
@@ -130,6 +131,24 @@ export class ApiAdapter {
         throw new Error(`HTTP Error: ${response.status}`);
       }
 
+      // Check if server sent a single JSON response
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        const content = data.reply || data.content || '';
+        if (onChunk) onChunk(content, content);
+        if (onComplete) {
+          onComplete({
+            role: 'assistant',
+            content,
+            simulated: false,
+            timestamp: new Date().toISOString()
+          });
+        }
+        return;
+      }
+
+      // Standard text stream chunk reading
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let accumulated = '';
