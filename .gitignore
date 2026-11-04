@@ -1,0 +1,81 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+agent/node_modules/
+
+# Local Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+backend/.env
+backend/.env.local
+agent/.env
+agent/.env.local
+
+# Production & Build Artifacts
+dist/
+dist-ssr/
+build/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor & System Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary and Transient Audio / Uploads
+.tmp/
+temp/
+backend/temp/
+agent/temp/
+*.tmp
+
+# Uploaded Documents Storage
+backend/data/documents/*
+!backend/data/documents/.gitkeep
+!backend/data/documents/0629aada-2872-48cc-a7a8-c3bce1544a1c_1793773471365.txt
+!backend/data/documents/0a293aef-561c-4b1b-98f4-b73e77dd4d64_1793774794624.txt
+!backend/data/documents/10952f59-4cad-4300-9afd-d13e9f5f1faa_1793773528945.md
+!backend/data/documents/20a0e865-b7d5-455a-815b-cac495ca0ab9_1793773911377.txt
+!backend/data/documents/2d166af4-473a-40c2-ab65-0b08b50ad5ee_1793773422113.txt
+!backend/data/documents/72762b33-734b-41d6-aa41-5368e554492d_1793773529012.txt
+!backend/data/documents/74e8cf6f-f310-47d2-8422-62672e5fb843_1793773471315.md
+!backend/data/documents/7860e187-fb68-4a81-96eb-198c66479ef5_1793773481681.md
+!backend/data/documents/8cece0bf-d18d-4cbb-b466-5167a5e6d687_1793774631982.txt
+!backend/data/documents/9928e703-4f46-4d49-b98d-d053e3508db7_1793773606719.txt
+!backend/data/documents/b8f7e3f2-93e5-44db-ace3-90bcb2fd9f78_1793773507756.txt
+!backend/data/documents/c6064d01-84cc-496c-a2e0-76e81bfc9083_1793773579807.txt
+!backend/data/documents/fad6c14e-1fce-426e-bd8f-2f64a6242dee_1793773357555.md
+!backend/data/documents/ff94ef45-a343-40a7-9ed9-f49abf6220fb_1793773361735.txt
+
+# Local Workspace Generated Files
+workspace/temp/
+workspace/screenshots/
+*.tmp
+
+# Local Database Files
+*.sqlite
+*.sqlite3
+*.db
+
+# Python Bytecode and Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+env/
+venv/

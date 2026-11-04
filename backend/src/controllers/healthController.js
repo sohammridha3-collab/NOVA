@@ -3,6 +3,7 @@
  */
 
 import { testConnection } from '../database/connection.js';
+import { modelAdapter } from '../ai/modelAdapter.js';
 import { formatSuccess, formatError } from '../utils/response.js';
 
 /**
@@ -29,6 +30,7 @@ export function getHealth(req, res) {
  */
 export async function getReadiness(req, res) {
   const dbStatus = await testConnection();
+  const aiStatus = modelAdapter.getStatus();
 
   if (dbStatus.ok) {
     return res.status(200).json(
@@ -40,7 +42,8 @@ export async function getReadiness(req, res) {
             host: dbStatus.host,
             port: dbStatus.port,
             database: dbStatus.database
-          }
+          },
+          ai: aiStatus
         },
         req
       )
@@ -60,10 +63,19 @@ export async function getReadiness(req, res) {
           code: dbStatus.code,
           message: dbStatus.message
         },
+        ai: aiStatus,
         setupGuide: dbStatus.setupGuide
       },
       req
     )
   );
+}
+
+/**
+ * Actively probe configured AI provider connection
+ */
+export async function testAiConnection(req, res) {
+  const result = await modelAdapter.testProviderConnection();
+  return res.status(200).json(formatSuccess(result, req));
 }
 

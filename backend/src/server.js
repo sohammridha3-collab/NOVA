@@ -47,6 +47,15 @@ const server = app.listen(config.port, process.env.HOST || '127.0.0.1', async ()
   console.log('========================================================');
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Backend port collision: Port ${config.port} is already in use by another process.`);
+    process.exit(1);
+  }
+  console.error(`❌ Backend server error:`, err.message);
+  process.exit(1);
+});
+
 // Graceful shutdown handling
 function handleShutdown(signal) {
   console.log(`\nReceived ${signal}. Shutting down NOVA Backend Server gracefully...`);
@@ -59,4 +68,3 @@ function handleShutdown(signal) {
 
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 process.on('SIGINT', () => handleShutdown('SIGINT'));
-

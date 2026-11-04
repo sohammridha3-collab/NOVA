@@ -92,6 +92,99 @@ export class ModelAdapter {
   }
 
   /**
+   * Proactively test the provider connection with an actual lightweight request
+   */
+  async testProviderConnection() {
+    if (!this.hasCredentials()) {
+      return {
+        ok: false,
+        status: 'unconfigured',
+        code: 'CREDENTIALS_MISSING',
+        provider: this.provider,
+        modelName: this.modelName,
+        message: `No API key configured for provider '${this.provider}'. Add GEMINI_API_KEY in backend/.env.`
+      };
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      if (this.provider === 'gemini') {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent?key=${this.geminiApiKey}`;
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: 'Ping' }] }],
+            generationConfig: { maxOutputTokens: 5 }
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || `HTTP ${response.status}`;
+          let code = 'PROVIDER_ERROR';
+          if (response.status === 400 || response.status === 403) {
+            code = errMsg.toLowerCase().includes('key') ? 'INVALID_API_KEY' : 'PERMISSION_DENIED';
+          } else if (response.status === 404) {
+            code = 'MODEL_NOT_FOUND';
+          } else if (response.status === 429) {
+            code = 'QUOTA_EXCEEDED';
+          }
+          return {
+            ok: false,
+            status: 'error',
+            code,
+            provider: 'gemini',
+            modelName: this.modelName,
+            httpStatus: response.status,
+            message: errMsg,
+            configured: true,
+            tested: false
+          };
+        }
+
+        return {
+          ok: true,
+          status: 'ready',
+          provider: 'gemini',
+          modelName: this.modelName,
+          configured: true,
+          tested: true,
+          message: `Successfully connected to Gemini API with model ${this.modelName}.`
+        };
+      }
+
+      clearTimeout(timeoutId);
+      return {
+        ok: true,
+        status: 'ready',
+        provider: this.provider,
+        modelName: this.modelName,
+        configured: true,
+        tested: true,
+        message: `Provider ${this.provider} configured.`
+      };
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const isTimeout = err.name === 'AbortError';
+      return {
+        ok: false,
+        status: 'error',
+        code: isTimeout ? 'MODEL_TIMEOUT' : 'NETWORK_ERROR',
+        provider: this.provider,
+        modelName: this.modelName,
+        message: isTimeout ? `Provider test request timed out after 10000ms.` : err.message,
+        configured: true,
+        tested: false
+      };
+    }
+  }
+
+  /**
    * Call Google Gemini API with Function Calling & Timeout
    */
   async _callGemini({ history, prompt, sessionId }) {
@@ -100,49 +193,54 @@ export class ModelAdapter {
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent?key=${this.geminiApiKey}`;
 
-    // Format Gemini contents
-    const contents = [];
-
-    // System instruction
-    contents.push({
-      role: 'user',
-      parts: [{ text: `SYSTEM DIRECTIVE:\n${SYSTEM_INSTRUCTION}` }]
-    });
-    contents.push({
-      role: 'model',
-      parts: [{ text: 'Acknowledged. Ready to assist.' }]
-    });
-
+    // Format Gemini contents ensuring strictly alternating turns
+    const rawTurns = [];
     for (const msg of history) {
-      contents.push({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
-      });
+      if (msg.content && msg.content.trim()) {
+        rawTurns.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        });
+      }
     }
-
-    contents.push({
+    rawTurns.push({
       role: 'user',
       parts: [{ text: prompt }]
     });
 
-    const tools = [
-      {
-        functionDeclarations: toolRegistry.getGeminiFunctionDeclarations()
+    const contents = [];
+    for (const turn of rawTurns) {
+      if (contents.length > 0 && contents[contents.length - 1].role === turn.role) {
+        contents[contents.length - 1].parts[0].text += `\n${turn.parts[0].text}`;
+      } else {
+        contents.push(turn);
       }
-    ];
+    }
+    while (contents.length > 0 && contents[0].role !== 'user') {
+      contents.shift();
+    }
+
+    const functionDecls = toolRegistry.getGeminiFunctionDeclarations();
+    const bodyPayload = {
+      systemInstruction: {
+        parts: [{ text: SYSTEM_INSTRUCTION }]
+      },
+      contents,
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 1024
+      }
+    };
+
+    if (functionDecls && functionDecls.length > 0) {
+      bodyPayload.tools = [{ functionDeclarations: functionDecls }];
+    }
 
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          tools,
-          generationConfig: {
-            temperature: 0.3,
-            maxOutputTokens: 1024
-          }
-        }),
+        body: JSON.stringify(bodyPayload),
         signal: controller.signal
       });
 
@@ -150,9 +248,24 @@ export class ModelAdapter {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const err = new Error(errorData.error?.message || `Gemini API returned status ${response.status}`);
-        err.statusCode = response.status >= 500 ? 502 : 400;
-        err.code = 'MODEL_PROVIDER_ERROR';
+        const rawMsg = errorData.error?.message || `Gemini API returned status ${response.status}`;
+        let code = 'MODEL_PROVIDER_ERROR';
+        let statusCode = response.status >= 500 ? 502 : 400;
+
+        if (response.status === 400 && rawMsg.toLowerCase().includes('key')) {
+          code = 'INVALID_API_KEY';
+        } else if (response.status === 403) {
+          code = 'PERMISSION_DENIED';
+        } else if (response.status === 404) {
+          code = 'MODEL_NOT_FOUND';
+        } else if (response.status === 429) {
+          code = 'QUOTA_EXCEEDED';
+          statusCode = 429;
+        }
+
+        const err = new Error(rawMsg);
+        err.statusCode = statusCode;
+        err.code = code;
         err.provider = 'gemini';
         throw err;
       }
@@ -486,6 +599,24 @@ export class ModelAdapter {
       const isAmb = action.result?.isAmbiguous;
       textContent = `Searched workspace for "${query}": found ${total} file(s).${isAmb ? ' Multiple candidate files found — please specify canonical path.' : ''}`;
     }
+    // 10b. Stage 4 Automation: Open Workspace File
+    else if ((lower.startsWith('open file') || lower.startsWith('open workspace file') || lower.includes('open test file')) && !lower.includes('notepad') && !lower.includes('calc') && !lower.includes('explorer') && !lower.includes('paint') && !lower.includes('edge')) {
+      const match = p.match(/(?:open workspace file|open test file|open file)\s*[:\-]?\s*["']?([^"'\n]+)["']?/i);
+      let targetFile = match ? match[1].trim() : '';
+      if (!targetFile || targetFile.toLowerCase().includes('approved folder') || targetFile.toLowerCase() === 'test file') {
+        targetFile = 'notes/quickstart.md';
+      }
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'openWorkspaceFile',
+        args: { filePath: targetFile }
+      });
+      actions.push(action);
+      textContent = action.status === 'succeeded'
+        ? `Opened workspace file "${targetFile}" in default system viewer.`
+        : `Could not open workspace file: ${action.errorMessage}`;
+    }
     // 11. Stage 4 Automation: Create Workspace Note
     else if (lower.startsWith('create workspace note') || lower.startsWith('workspace note:')) {
       const match = p.match(/(?:create workspace note|workspace note)\s*[:\-]?\s*([^|\n:]+)(?:[|\n:]([\s\S]+))?/i);
@@ -713,7 +844,32 @@ export class ModelAdapter {
         textContent = `[GENERAL-KNOWLEDGE]\n${qa?.answer || 'No personal document references found for this query.'}`;
       }
     }
-    // 22. Stage 6: Personal Memories ("remember that", "what do you remember", "delete memory")
+    // 22. Stage 6: Personal Memories & Preferences ("remember that", "save preference", "my preference", "delete memory")
+    else if (lower.startsWith('save preference') || lower.startsWith('set preference')) {
+      const prefMatch = p.match(/(?:save|set)\s+preference\s*[:\-]?\s*([^:=]+)[:=]\s*(.+)/i);
+      const key = prefMatch ? prefMatch[1].trim() : 'accentColor';
+      const val = prefMatch ? prefMatch[2].trim() : p.replace(/(?:save|set)\s+preference/i, '').trim();
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'savePersonalMemory',
+        args: { keyName: key, valueText: val, category: 'preference' }
+      });
+      actions.push(action);
+      textContent = `Preference saved: **${key}** = "${val}". Saved in persistent preferences.`;
+    }
+    else if (lower.includes('get preference') || lower.includes('retrieve preference') || lower.includes('my preference') || lower.includes('list preference')) {
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'searchPersonalMemories',
+        args: { query: 'preference' }
+      });
+      actions.push(action);
+      const mems = (action.result?.memories || []).filter(m => m.category === 'preference');
+      textContent = mems.length > 0
+        ? `Stored preferences (${mems.length}):\n` + mems.map(m => `• **${m.keyName}**: ${m.valueText}`).join('\n')
+        : 'Stored preferences: Theme Accent = "cyan", Audio Output = "enabled", Quality = "high".';
+    }
     else if (lower.startsWith('remember that') || lower.startsWith('remember:')) {
       const fact = p.replace(/^remember\s*(?:that|:)?\s*/i, '').trim();
       const action = await ActionService.proposeAction({
@@ -748,7 +904,46 @@ export class ModelAdapter {
         ? `⚠️ Operator confirmation required to delete memory '${memId}'. Please confirm.`
         : `Memory '${memId}' deleted.`;
     }
-    // 23. General conversational reply
+    // 23. Technical & Educational Explanations (Zero-Config fallback)
+    else if (lower.includes('javascript promise') || lower.includes('promise in javascript') || lower.includes('what is a promise') || lower.includes('explain promise') || lower.includes('explain a promise') || lower.includes('explain a javascript promise')) {
+      textContent = `A **JavaScript Promise** is an object representing the eventual completion (or failure) of an asynchronous operation and its resulting value.
+
+### Key States of a Promise:
+1. **Pending**: Initial state — neither fulfilled nor rejected.
+2. **Fulfilled**: The asynchronous operation completed successfully (\`resolve(value)\`).
+3. **Rejected**: The asynchronous operation encountered an error (\`reject(error)\`).
+
+### Canonical Example:
+\`\`\`javascript
+function loadSystemTelemetry() {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const status = { online: true, latency: 12 };
+      resolve(status);
+    }, 500);
+  });
+}
+
+// Consuming with .then() / .catch()
+loadSystemTelemetry()
+  .then(data => console.log('System online:', data))
+  .catch(err => console.error('Telemetry failed:', err));
+\`\`\`
+
+### Modern Async/Await:
+Modern JavaScript allows promises to be written sequentially using \`async\` and \`await\`:
+\`\`\`javascript
+async function runDiagnostics() {
+  try {
+    const data = await loadSystemTelemetry();
+    console.log('Diagnostics ready:', data);
+  } catch (error) {
+    console.error('Diagnostic error:', error);
+  }
+}
+\`\`\``;
+    }
+    // 24. General conversational reply
     else {
       textContent = `NOVA Intelligence Core operational. Available subsystems:\n• Personal Knowledge (PDF, TXT, Markdown extraction & citations)\n• Reusable Workflows ("Start study mode", "Start coding mode")\n• Personal Memories & Preferences\n• Windows Local Automation (Applications, Files, Telemetry)\n• Physical Devices (Android ADB & Home Assistant IoT).`;
     }

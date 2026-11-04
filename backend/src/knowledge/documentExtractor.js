@@ -44,18 +44,19 @@ export function validateDocumentFile(file) {
 /**
  * Extracts raw pages/sections and structured text from document buffer.
  */
-export async function extractDocumentText(buffer, fileType, originalName = '') {
-  const normType = fileType.toLowerCase().replace('.', '');
+export async function extractDocumentText(buffer, fileType = '', originalName = '') {
+  const normType = (fileType || '').toLowerCase().replace('.', '');
+  const ext = (originalName ? originalName.split('.').pop() : '').toLowerCase();
 
-  if (normType === 'pdf') {
+  if (normType === 'pdf' || normType === 'application/pdf' || ext === 'pdf') {
     return await extractPdfText(buffer);
-  } else if (normType === 'md' || normType === 'markdown') {
+  } else if (normType === 'md' || normType === 'markdown' || normType === 'text/markdown' || ext === 'md') {
     return extractMarkdownText(buffer.toString('utf-8'), originalName);
-  } else if (normType === 'txt') {
+  } else if (normType === 'txt' || normType === 'text/plain' || ext === 'txt') {
     return extractPlainText(buffer.toString('utf-8'), originalName);
   }
 
-  throw new Error(`Unsupported document extractor for type: ${normType}`);
+  throw new Error(`Unsupported document extractor for type: ${fileType || originalName}`);
 }
 
 /**
