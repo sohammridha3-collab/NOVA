@@ -846,8 +846,10 @@ export class ChatInterface {
         }
 
         const settings = storage.loadSettings();
-        if (settings.ttsEnabled && !speech.isMuted) {
-          const spoke = speech.speak(finalMsg.content, {
+        const shouldSpeak = (settings.ttsEnabled || finalMsg.meta?.forceSpeak || Boolean(finalMsg.meta?.speakText)) && !speech.isMuted;
+        if (shouldSpeak) {
+          const textToSpeak = finalMsg.meta?.speakText || finalMsg.content;
+          const spoke = speech.speak(textToSpeak, {
             voiceURI: settings.voiceURI,
             rate: settings.speechRate,
             pitch: settings.speechPitch

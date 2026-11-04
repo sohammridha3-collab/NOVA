@@ -58,7 +58,8 @@ export const ChatController = {
         {
           sessionId: targetSessionId,
           message: assistantMsg,
-          actions: aiResponse.actions || []
+          actions: aiResponse.actions || [],
+          meta: aiResponse.meta || {}
         },
         200,
         {

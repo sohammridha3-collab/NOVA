@@ -320,11 +320,26 @@ class HomeAssistantService {
       throw err;
     }
 
-    const matches = all.filter(e =>
+    // 1. Try matching specifically by friendly name or entity identifier
+    const nameMatches = all.filter(e =>
       e.entityId.toLowerCase().includes(q) ||
       e.friendlyName.toLowerCase().includes(q) ||
-      (q.includes('tv') && e.deviceClass === 'tv')
+      q.includes(e.friendlyName.toLowerCase()) ||
+      q.includes(e.entityId.toLowerCase().replace('media_player.', '').replace('light.', '').replace('switch.', '').replace(/_/g, ' '))
     );
+
+    let matches = [];
+    if (nameMatches.length === 1) {
+      return nameMatches[0];
+    } else if (nameMatches.length > 1) {
+      matches = nameMatches;
+    } else {
+      // 2. Generic fallback by deviceClass if generic term like "tv"
+      matches = all.filter(e =>
+        (q.includes('tv') && e.deviceClass === 'tv') ||
+        (q.includes('light') && e.entityId.startsWith('light.'))
+      );
+    }
 
     if (matches.length === 0) {
       const err = new Error(`No ${domain || 'device'} matching '${query}' found.`);

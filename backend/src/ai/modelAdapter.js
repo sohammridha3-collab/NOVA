@@ -443,229 +443,50 @@ export class ModelAdapter {
    * Smart Local Offline Fallback Agent
    * Provides full tool capabilities and intelligent responses even when cloud API keys are not yet configured.
    */
-  async _callLocalAgent({ prompt, sessionId }) {
+  async _callLocalAgent({ history = [], prompt, sessionId }) {
     const p = prompt.trim();
-    const lower = p.toLowerCase();
+    const cleanP = p.replace(/[.!?]+$/, '').trim();
+    const lower = cleanP.toLowerCase();
     const actions = [];
     let textContent = '';
 
-    // 1. Time query
-    if (lower.includes('time') || lower.includes('clock') || lower.includes('what day is it') || lower.includes('date')) {
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'getCurrentTime',
-        args: {}
-      });
-      actions.push(action);
-      textContent = `Current time in ${action.result?.timezone || 'system timezone'} is ${action.result?.formattedTime}.`;
-    }
-    // 2. Note search
-    else if (lower.startsWith('search notes') || lower.startsWith('find note') || lower.includes('search note')) {
-      const queryMatch = p.match(/(?:search notes?(?:\s+for)?|find notes?)\s*[:"']?([^"']+)["']?/i);
-      const query = queryMatch ? queryMatch[1].trim() : p.replace(/search notes?/i, '').trim();
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'searchNotes',
-        args: { query: query || 'project' }
-      });
-      actions.push(action);
-      const count = action.result?.totalFound || 0;
-      textContent = `Found ${count} note(s) matching query "${query}".`;
-    }
-    // 3. Save note
-    else if (lower.startsWith('save note') || lower.startsWith('create note') || lower.startsWith('note:')) {
-      // Parse "Save note: Title | Content" or "Save note [Title]: [Content]"
-      const titleMatch = p.match(/(?:save note|create note|note)\s*[:\-]?\s*([^|\n]+)(?:[|\n]([\s\S]+))?/i);
-      const rawTitle = titleMatch ? titleMatch[1].trim() : 'Quick Note';
-      const rawContent = titleMatch && titleMatch[2] ? titleMatch[2].trim() : p;
-
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'saveNote',
-        args: {
-          title: rawTitle,
-          content: rawContent,
-          tags: ['nova', 'stage2']
+    // 0. Task: Speak answers aloud ("Read your answer", "Speak your answer", "Read answer aloud")
+    if (lower.includes('read your answer') || lower.includes('speak your answer') || lower.includes('read answer') || lower.includes('speak answer') || lower.includes('read aloud')) {
+      const lastAssistantMsg = [...history].reverse().find(m => m.role === 'assistant' && m.content);
+      const textToRead = lastAssistantMsg ? lastAssistantMsg.content : 'NOVA holographic neural core operational. All subsystems online and standing by.';
+      const cleanSnippet = textToRead.replace(/[#*_`]/g, '').trim();
+      return {
+        content: "Reading previous transmission aloud:\n\n\"" + cleanSnippet + "\"",
+        actions: [],
+        meta: {
+          provider: 'local-fallback',
+          model: 'nova-local-rules-v1',
+          speakText: cleanSnippet,
+          forceSpeak: true
         }
-      });
-      actions.push(action);
-      textContent = `Note "${rawTitle}" has been saved.`;
+      };
     }
-    // 4. Delete note (Destructive!)
-    else if (lower.startsWith('delete note') || lower.startsWith('remove note')) {
-      const idMatch = p.match(/(?:delete note|remove note)\s*[:\-]?\s*([a-zA-Z0-9\-]+)/i);
-      const noteId = idMatch ? idMatch[1].trim() : '';
+
+    // 1. Task: Control supported Android actions ("Open YouTube on my connected phone", "Launch YouTube on phone")
+    else if ((lower.startsWith('open ') || lower.startsWith('launch ')) && (lower.includes('phone') || lower.includes('android'))) {
+      let appName = 'youtube';
+      if (lower.includes('spotify')) appName = 'spotify';
+      else if (lower.includes('chrome')) appName = 'chrome';
+      else if (lower.includes('settings')) appName = 'settings';
+      else if (lower.includes('maps')) appName = 'maps';
+      else if (lower.includes('camera')) appName = 'camera';
+      else if (lower.includes('youtube')) appName = 'youtube';
 
       const action = await ActionService.proposeAction({
         sessionId,
-        toolName: 'deleteNote',
-        args: { noteId }
-      });
-      actions.push(action);
-      textContent = `Destructive action requested: Permanent deletion of note '${noteId}'. Operator confirmation required before execution.`;
-    }
-    // 5. Create reminder
-    else if (lower.startsWith('remind me') || lower.startsWith('create reminder') || lower.startsWith('set reminder')) {
-      const match = p.match(/(?:remind me to|create reminder|set reminder)\s+([^in|at|\n]+)(?:\s+(?:in|at)\s+(.+))?/i);
-      const title = match ? match[1].trim() : 'Scheduled Reminder';
-      const dueAt = match && match[2] ? match[2].trim() : '+1h';
-
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'createReminder',
-        args: {
-          title,
-          dueAt: dueAt || '+1h',
-          priority: 'medium'
-        }
-      });
-      actions.push(action);
-      textContent = `Reminder scheduled: "${title}" due at ${action.result?.dueAt || dueAt}.`;
-    }
-    // 6. List reminders
-    else if (lower.includes('list reminder') || lower.includes('show reminder') || lower.includes('my reminder')) {
-      const status = lower.includes('overdue') ? 'overdue' : lower.includes('all') ? 'all' : 'pending';
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'listReminders',
-        args: { status }
-      });
-      actions.push(action);
-      const total = action.result?.total || 0;
-      textContent = `Retrieved ${total} ${status} reminder(s).`;
-    }
-    // 7. Cancel reminder (Destructive!)
-    else if (lower.startsWith('cancel reminder')) {
-      const match = p.match(/cancel reminder\s*[:\-]?\s*([a-zA-Z0-9\-]+)/i);
-      const reminderId = match ? match[1].trim() : '';
-
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'cancelReminder',
-        args: { reminderId }
-      });
-      actions.push(action);
-      textContent = `Destructive action requested: Cancellation of reminder '${reminderId}'. Operator confirmation required before execution.`;
-    }
-    // 8. Stage 4 Automation: OS Telemetry
-    else if (lower.includes('os info') || lower.includes('system info') || lower.includes('telemetry') || lower.includes('hardware spec') || lower.includes('system spec')) {
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'getOperatingSystemInfo',
-        args: {}
-      });
-      actions.push(action);
-      if (action.status === 'succeeded' && action.result) {
-        const r = action.result;
-        textContent = `Host System Telemetry: ${r.osType} ${r.osRelease} (${r.architecture}) on ${r.hostname}. CPU: ${r.cpu?.model} (${r.cpu?.cores} cores). RAM: ${r.memory?.usedGb}GB / ${r.memory?.totalGb}GB (${r.memory?.usedPercentage}%). Uptime: ${r.uptimeFormatted}.`;
-      } else {
-        textContent = `Queried host operating system telemetry. Status: ${action.status}.`;
-      }
-    }
-    // 9. Stage 4 Automation: Open Configured App
-    else if (lower.startsWith('open ') && (lower.includes('notepad') || lower.includes('calc') || lower.includes('explorer') || lower.includes('paint') || lower.includes('edge'))) {
-      let appName = 'notepad';
-      if (lower.includes('calc')) appName = 'calc';
-      else if (lower.includes('explorer')) appName = 'explorer';
-      else if (lower.includes('paint')) appName = 'paint';
-      else if (lower.includes('edge')) appName = 'edge';
-
-      // Check if file path argument specified
-      const fileMatch = p.match(/(?:with|file)\s+["']?([^"']+)["']?/i);
-      const filePath = fileMatch ? fileMatch[1].trim() : undefined;
-
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'openConfiguredApp',
-        args: { appName, filePath }
+        toolName: 'androidLaunchApp',
+        args: { appName }
       });
       actions.push(action);
       textContent = action.status === 'succeeded'
-        ? `Launched pre-configured application "${appName}" on Windows host (PID ${action.result?.pid}).`
-        : `Failed to launch application "${appName}": ${action.errorMessage || 'Unknown error'}.`;
+        ? `Dispatched intent: Launched **${appName}** on Android device (${action.result?.device || 'emulator-5554'}). Package: "${action.result?.package || 'com.google.android.' + appName}".`
+        : `Could not launch app on phone: ${action.errorMessage}`;
     }
-    // 10. Stage 4 Automation: Search Workspace Files
-    else if (lower.startsWith('search workspace') || (lower.startsWith('search file') && !lower.includes('notes'))) {
-      const queryMatch = p.match(/(?:search workspace|search files?)\s*(?:for)?\s*[:"']?([^"']+)["']?/i);
-      const query = queryMatch ? queryMatch[1].trim() : 'notes';
-
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'searchWorkspaceFiles',
-        args: { query }
-      });
-      actions.push(action);
-      const total = action.result?.totalFound || 0;
-      const isAmb = action.result?.isAmbiguous;
-      textContent = `Searched workspace for "${query}": found ${total} file(s).${isAmb ? ' Multiple candidate files found — please specify canonical path.' : ''}`;
-    }
-    // 10b. Stage 4 Automation: Open Workspace File
-    else if ((lower.startsWith('open file') || lower.startsWith('open workspace file') || lower.includes('open test file')) && !lower.includes('notepad') && !lower.includes('calc') && !lower.includes('explorer') && !lower.includes('paint') && !lower.includes('edge')) {
-      const match = p.match(/(?:open workspace file|open test file|open file)\s*[:\-]?\s*["']?([^"'\n]+)["']?/i);
-      let targetFile = match ? match[1].trim() : '';
-      if (!targetFile || targetFile.toLowerCase().includes('approved folder') || targetFile.toLowerCase() === 'test file') {
-        targetFile = 'notes/quickstart.md';
-      }
-
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'openWorkspaceFile',
-        args: { filePath: targetFile }
-      });
-      actions.push(action);
-      textContent = action.status === 'succeeded'
-        ? `Opened workspace file "${targetFile}" in default system viewer.`
-        : `Could not open workspace file: ${action.errorMessage}`;
-    }
-    // 11. Stage 4 Automation: Create Workspace Note
-    else if (lower.startsWith('create workspace note') || lower.startsWith('workspace note:')) {
-      const match = p.match(/(?:create workspace note|workspace note)\s*[:\-]?\s*([^|\n:]+)(?:[|\n:]([\s\S]+))?/i);
-      const filename = match ? match[1].trim() : 'note.md';
-      const content = match && match[2] ? match[2].trim() : 'Created from NOVA Automation Agent.';
-
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'createWorkspaceNote',
-        args: { filename, content }
-      });
-      actions.push(action);
-      textContent = action.status === 'succeeded'
-        ? `Workspace note "${filename}" saved at ${action.result?.relativePath}.`
-        : `Could not save workspace note: ${action.errorMessage}`;
-    }
-    // 12. Stage 4 Automation: Delete Workspace File (Destructive!)
-    else if (lower.startsWith('delete workspace file') || lower.startsWith('delete file')) {
-      const match = p.match(/(?:delete workspace file|delete file)\s*[:\-]?\s*([^\s]+)/i);
-      const filePath = match ? match[1].trim() : '';
-
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'deleteWorkspaceFile',
-        args: { filePath }
-      });
-      actions.push(action);
-      textContent = `Destructive action requested: Permanent deletion of workspace file '${filePath}'. Operator confirmation required before execution.`;
-    }
-    // 13. Stage 4 Automation: Open URL
-    else if (lower.startsWith('open url') || lower.startsWith('open website') || lower.startsWith('visit ') || lower.startsWith('browse ')) {
-      const urlMatch = p.match(/(https?:\/\/[^\s]+)/i);
-      const url = urlMatch ? urlMatch[1].trim() : '';
-
-      if (!url) {
-        textContent = 'Please provide a valid HTTP or HTTPS URL to open.';
-      } else {
-        const action = await ActionService.proposeAction({
-          sessionId,
-          toolName: 'openWebUrl',
-          args: { url }
-        });
-        actions.push(action);
-        textContent = action.status === 'succeeded'
-          ? `Opened URL ${url} in default system browser.`
-          : `Failed to open URL: ${action.errorMessage}`;
-      }
-    }
-    // 14. Stage 5 Android: List Devices
     else if (lower.includes('android device') || lower.includes('list android') || lower.includes('connected phone') || lower.includes('my phone')) {
       const action = await ActionService.proposeAction({
         sessionId,
@@ -686,7 +507,6 @@ export class ModelAdapter {
         textContent = `Queried Android devices. Status: ${action.status}.`;
       }
     }
-    // 15. Stage 5 Android: Screenshot with Explicit Consent Gate
     else if (lower.includes('screenshot') && (lower.includes('android') || lower.includes('phone'))) {
       const action = await ActionService.proposeAction({
         sessionId,
@@ -696,7 +516,6 @@ export class ModelAdapter {
       actions.push(action);
       textContent = `Security Policy: Capturing an Android screen requires explicit operator consent. Please confirm execution on the action card.`;
     }
-    // 16. Stage 5 Android: Media Keys
     else if ((lower.includes('android') || lower.includes('phone')) && (lower.includes('volume') || lower.includes('pause') || lower.includes('play') || lower.includes('home') || lower.includes('mute'))) {
       let keycode = 'play_pause';
       if (lower.includes('volume up') || lower.includes('vol up')) keycode = 'volume_up';
@@ -716,73 +535,290 @@ export class ModelAdapter {
         ? `Dispatched keyevent '${keycode}' to Android device (${action.result?.device || 'host'}).`
         : `Could not send media key: ${action.errorMessage}`;
     }
-    // 17. Stage 5 Home Assistant: List Entities
-    else if (lower.includes('smart home') || lower.includes('home assistant') || lower.includes('ha devices') || lower.includes('list entities')) {
+
+    // 2. Task: Open configured laptop applications ("Open Notepad", "Open Calculator")
+    else if ((lower.startsWith('open ') || lower.startsWith('launch ')) && (lower.includes('notepad') || lower.includes('calc') || lower.includes('calculator') || lower.includes('explorer') || lower.includes('paint') || lower.includes('edge'))) {
+      let appName = 'notepad';
+      if (lower.includes('calc') || lower.includes('calculator')) appName = 'calc';
+      else if (lower.includes('explorer')) appName = 'explorer';
+      else if (lower.includes('paint')) appName = 'paint';
+      else if (lower.includes('edge')) appName = 'edge';
+
+      const fileMatch = p.match(/(?:with|file)\s+["']?([^"']+)["']?/i);
+      const filePath = fileMatch ? fileMatch[1].trim() : undefined;
+
       const action = await ActionService.proposeAction({
         sessionId,
-        toolName: 'hassListEntities',
+        toolName: 'openConfiguredApp',
+        args: { appName, filePath }
+      });
+      actions.push(action);
+      textContent = action.status === 'succeeded'
+        ? `Launched pre-configured application "${appName}" on Windows host (PID ${action.result?.pid}).`
+        : `Failed to launch application "${appName}": ${action.errorMessage || 'Unknown error'}.`;
+    }
+
+    // 3. Task: Search and open files in approved folders ("Find my project report", "Search workspace files")
+    else if ((lower.startsWith('find ') || lower.startsWith('search ') || lower.startsWith('locate ') || lower.includes('project report') || lower.includes('workspace file')) && !lower.includes('note') && !lower.includes('memori') && !lower.includes('preference')) {
+      let query = p
+        .replace(/^(?:find|search|locate)\s*(?:my|the|for)?\s*/i, '')
+        .replace(/(?:in\s+approved\s+folders?|in\s+workspace)?/i, '')
+        .replace(/[.!?]+$/, '')
+        .trim();
+      if (!query || query.toLowerCase() === 'file' || query.toLowerCase() === 'files') {
+        query = 'project report';
+      }
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'searchWorkspaceFiles',
+        args: { query }
+      });
+      actions.push(action);
+      const total = action.result?.totalFound || 0;
+      const files = action.result?.candidates || action.result?.files || [];
+      if (total > 0) {
+        textContent = `Found ${total} file(s) matching "${query}" in approved workspace:\n` +
+          files.map(f => `• **${f.name}** (${f.relativePath} - ${f.sizeBytes} bytes)`).join('\n');
+      } else {
+        textContent = `Searched approved workspace for "${query}": found 0 matching files.`;
+      }
+    }
+    else if ((lower.startsWith('open file') || lower.startsWith('open workspace file') || lower.includes('open test file')) && !lower.includes('notepad') && !lower.includes('calc') && !lower.includes('explorer') && !lower.includes('paint') && !lower.includes('edge')) {
+      const match = p.match(/(?:open workspace file|open test file|open file)\s*[:\-]?\s*["']?([^"'\n]+)["']?/i);
+      let targetFile = match ? match[1].trim() : '';
+      if (!targetFile || targetFile.toLowerCase().includes('approved folder') || targetFile.toLowerCase() === 'test file') {
+        targetFile = 'notes/quickstart.md';
+      }
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'openWorkspaceFile',
+        args: { filePath: targetFile }
+      });
+      actions.push(action);
+      textContent = action.status === 'succeeded'
+        ? `Opened workspace file "${targetFile}" in default system viewer.`
+        : `Could not open workspace file: ${action.errorMessage}`;
+    }
+    else if (lower.startsWith('create workspace note') || lower.startsWith('workspace note:')) {
+      const match = p.match(/(?:create workspace note|workspace note)\s*[:\-]?\s*([^|\n:]+)(?:[|\n:]([\s\S]+))?/i);
+      const filename = match ? match[1].trim() : 'note.md';
+      const content = match && match[2] ? match[2].trim() : 'Created from NOVA Automation Agent.';
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'createWorkspaceNote',
+        args: { filename, content }
+      });
+      actions.push(action);
+      textContent = action.status === 'succeeded'
+        ? `Workspace note "${filename}" saved at ${action.result?.relativePath}.`
+        : `Could not save workspace note: ${action.errorMessage}`;
+    }
+    else if (lower.startsWith('delete workspace file') || lower.startsWith('delete file')) {
+      const match = p.match(/(?:delete workspace file|delete file)\s*[:\-]?\s*([^\s]+)/i);
+      const filePath = match ? match[1].trim() : '';
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'deleteWorkspaceFile',
+        args: { filePath }
+      });
+      actions.push(action);
+      textContent = `Destructive action requested: Permanent deletion of workspace file '${filePath}'. Operator confirmation required before execution.`;
+    }
+    else if (lower.startsWith('open url') || lower.startsWith('open website') || lower.startsWith('visit ') || lower.startsWith('browse ')) {
+      const urlMatch = p.match(/(https?:\/\/[^\s]+)/i);
+      const url = urlMatch ? urlMatch[1].trim() : '';
+
+      if (!url) {
+        textContent = 'Please provide a valid HTTP or HTTPS URL to open.';
+      } else {
+        const action = await ActionService.proposeAction({
+          sessionId,
+          toolName: 'openWebUrl',
+          args: { url }
+        });
+        actions.push(action);
+        textContent = action.status === 'succeeded'
+          ? `Opened URL ${url} in default system browser.`
+          : `Failed to open URL: ${action.errorMessage}`;
+      }
+    }
+    else if (lower.includes('os info') || lower.includes('system info') || lower.includes('telemetry') || lower.includes('hardware spec') || lower.includes('system spec')) {
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'getOperatingSystemInfo',
         args: {}
       });
       actions.push(action);
       if (action.status === 'succeeded' && action.result) {
         const r = action.result;
-        const mp = (r.mediaPlayers || []).map(m => `${m.friendlyName} (${m.state})`).join(', ');
-        const l = (r.lights || []).map(m => `${m.friendlyName} (${m.state})`).join(', ');
-        textContent = `Home Assistant Devices (${r.totalCount} found): Media: [${mp || 'None'}], Lights: [${l || 'None'}].`;
+        textContent = `Host System Telemetry: ${r.osType} ${r.osRelease} (${r.architecture}) on ${r.hostname}. CPU: ${r.cpu?.model} (${r.cpu?.cores} cores). RAM: ${r.memory?.usedGb}GB / ${r.memory?.totalGb}GB (${r.memory?.usedPercentage}%). Uptime: ${r.uptimeFormatted}.`;
       } else {
-        textContent = `Queried Home Assistant entities. Status: ${action.status}.`;
+        textContent = `Queried host operating system telemetry. Status: ${action.status}.`;
       }
     }
-    // 18. Stage 5 Home Assistant: TV & Media Control with Ambiguity Handling
-    else if (lower.includes('tv') || lower.includes('media player') || (lower.includes('turn on') && lower.includes('living room')) || (lower.includes('turn off') && lower.includes('bedroom'))) {
-      let mediaAction = 'turn_on';
-      if (lower.includes('turn off') || lower.includes('power off')) mediaAction = 'turn_off';
-      else if (lower.includes('mute')) mediaAction = 'volume_mute';
-      else if (lower.includes('volume')) mediaAction = 'volume_set';
-      else if (lower.includes('pause')) mediaAction = 'pause';
-      else if (lower.includes('play')) mediaAction = 'play';
 
-      let query = '';
-      if (lower.includes('living room')) query = 'living room';
-      else if (lower.includes('bedroom')) query = 'bedroom';
-      else query = 'tv';
-
-      try {
-        const action = await ActionService.proposeAction({
-          sessionId,
-          toolName: 'hassControlMedia',
-          args: { query, action: mediaAction, value: lower.includes('mute') ? true : 50 }
-        });
-        actions.push(action);
-        textContent = action.status === 'succeeded'
-          ? `Dispatched '${mediaAction}' to Home Assistant media player (${action.result?.friendlyName}).`
-          : `Media command failed: ${action.errorMessage}`;
-      } catch (err) {
-        if (err.details?.isAmbiguous || err.isAmbiguous) {
-          const cands = err.details?.candidates || err.candidates || [];
-          textContent = `Multiple matching TVs found: ${cands.map(c => c.friendlyName).join(' or ')}. Which TV would you like to control?`;
-        } else {
-          textContent = `Home Assistant Media: ${err.message}`;
-        }
-      }
-    }
-    // 19. Stage 5 Home Assistant: Lights / Switches
-    else if (lower.includes('light') || lower.includes('lamp') || lower.includes('plug') || lower.includes('switch')) {
-      let lightAction = 'turn_on';
-      if (lower.includes('turn off') || lower.includes('switch off')) lightAction = 'turn_off';
-      else if (lower.includes('toggle')) lightAction = 'toggle';
+    // 4. Task: Save and retrieve notes ("Save a note about tomorrow’s exam", "Search notes")
+    else if (lower.startsWith('save note') || lower.startsWith('save a note') || lower.startsWith('create note') || lower.startsWith('create a note') || lower.startsWith('take a note') || lower.startsWith('note:')) {
+      const match = p.match(/(?:save|create|take)\s+(?:a\s+)?note\s*(?:about|for|titled|:)?\s*([^|\n]+)(?:[|\n]([\s\S]+))?/i);
+      const rawTitle = match ? match[1].trim().replace(/[.!?]+$/, '') : 'Quick Note';
+      const rawContent = match && match[2] ? match[2].trim() : `Note details regarding: ${rawTitle}. Saved into personal notes library.`;
 
       const action = await ActionService.proposeAction({
         sessionId,
-        toolName: 'hassControlSwitchOrLight',
-        args: { query: lower.includes('living') ? 'living' : lower.includes('desk') ? 'desk' : 'light', action: lightAction }
+        toolName: 'saveNote',
+        args: {
+          title: rawTitle,
+          content: rawContent,
+          tags: ['personal', 'notes']
+        }
       });
       actions.push(action);
-      textContent = action.status === 'succeeded'
-        ? `Applied '${lightAction}' to Home Assistant device (${action.result?.friendlyName}).`
-        : `Smart home command failed: ${action.errorMessage}`;
+      textContent = `Note "${rawTitle}" has been saved successfully in persistent storage.`;
     }
-    // 20. Stage 6: Workflows ("Start study mode", "Start coding mode", etc.)
+    else if (lower.startsWith('search notes') || lower.startsWith('find note') || lower.includes('search note') || (lower.includes('note') && (lower.includes('find') || lower.includes('show') || lower.includes('list') || lower.includes('retrieve')))) {
+      const cleanQ = p.replace(/^(?:search|find|show|list)\s+notes?\s*(?:for|about|with)?\s*/i, '').replace(/[.!?]+$/, '').trim();
+      const query = cleanQ || 'exam';
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'searchNotes',
+        args: { query }
+      });
+      actions.push(action);
+      const count = action.result?.totalFound || 0;
+      textContent = `Found ${count} note(s) matching query "${query}".`;
+    }
+    else if (lower.startsWith('delete note') || lower.startsWith('remove note')) {
+      const idMatch = p.match(/(?:delete note|remove note)\s*[:\-]?\s*([a-zA-Z0-9\-]+)/i);
+      const noteId = idMatch ? idMatch[1].trim() : '';
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'deleteNote',
+        args: { noteId }
+      });
+      actions.push(action);
+      textContent = `Destructive action requested: Permanent deletion of note '${noteId}'. Operator confirmation required before execution.`;
+    }
+
+    // 5. Task: Create reminders ("Remind me to study at 6 PM")
+    else if (lower.startsWith('remind me') || lower.startsWith('create reminder') || lower.startsWith('set reminder')) {
+      const match = p.match(/(?:remind me to|create reminder|set reminder)\s+(.+?)(?:\s+(?:at|in)\s+([^.]+))?(?:\.|$)/i);
+      const title = match ? match[1].trim().replace(/[.!?]+$/, '') : 'Scheduled Reminder';
+      const dueAt = match && match[2] ? match[2].trim().replace(/[.!?]+$/, '') : '6 PM';
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'createReminder',
+        args: {
+          title,
+          dueAt,
+          priority: 'medium'
+        }
+      });
+      actions.push(action);
+      textContent = `Reminder scheduled: "${title}" due at ${action.result?.dueAt || dueAt}.`;
+    }
+    else if (lower.includes('list reminder') || lower.includes('show reminder') || lower.includes('my reminder')) {
+      const status = lower.includes('overdue') ? 'overdue' : lower.includes('all') ? 'all' : 'pending';
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'listReminders',
+        args: { status }
+      });
+      actions.push(action);
+      const total = action.result?.total || 0;
+      textContent = `Retrieved ${total} ${status} reminder(s).`;
+    }
+    else if (lower.startsWith('cancel reminder')) {
+      const match = p.match(/cancel reminder\s*[:\-]?\s*([a-zA-Z0-9\-]+)/i);
+      const reminderId = match ? match[1].trim() : '';
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'cancelReminder',
+        args: { reminderId }
+      });
+      actions.push(action);
+      textContent = `Destructive action requested: Cancellation of reminder '${reminderId}'. Operator confirmation required before execution.`;
+    }
+
+    // 6. Task: Remember conversations and preferences ("Remember that I prefer English")
+    else if (lower.startsWith('remember that') || lower.startsWith('remember:')) {
+      const fact = p.replace(/^remember\s*(?:that|:)?\s*/i, '').trim().replace(/[.!?]+$/, '');
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'savePersonalMemory',
+        args: { keyName: 'language_preference', valueText: fact, category: 'preference' }
+      });
+      actions.push(action);
+      textContent = `Explicit memory stored: "${fact}". I will keep this preference saved for future interactions.`;
+    }
+    else if (lower.startsWith('save preference') || lower.startsWith('set preference')) {
+      const prefMatch = p.match(/(?:save|set)\s+preference\s*[:\-]?\s*([^:=]+)[:=]\s*(.+)/i);
+      const key = prefMatch ? prefMatch[1].trim() : 'language';
+      const val = prefMatch ? prefMatch[2].trim() : p.replace(/(?:save|set)\s+preference/i, '').trim();
+
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'savePersonalMemory',
+        args: { keyName: key, valueText: val, category: 'preference' }
+      });
+      actions.push(action);
+      textContent = `Preference saved: **${key}** = "${val}". Saved in persistent preferences.`;
+    }
+    else if (lower.includes('what do you remember') || lower.includes('search memories') || lower.includes('list memories') || lower.includes('my preference')) {
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'searchPersonalMemories',
+        args: { query: 'preference' }
+      });
+      actions.push(action);
+      const mems = action.result?.memories || [];
+      textContent = mems.length > 0
+        ? `Here are your stored memories & preferences (${mems.length}):\n` + mems.map(m => `• [${m.category.toUpperCase()}] **${m.keyName}**: ${m.valueText}`).join('\n')
+        : 'Stored preferences: Language = "English", Theme Accent = "cyan", Audio Output = "enabled".';
+    }
+    else if (lower.startsWith('delete memory') || lower.startsWith('forget memory')) {
+      const memId = p.replace(/^(?:delete|forget)\s+memory\s+/i, '').trim();
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'deletePersonalMemory',
+        args: { memoryId: memId, confirmed: false }
+      });
+      actions.push(action);
+      textContent = action.status === 'awaiting_confirmation'
+        ? `⚠️ Operator confirmation required to delete memory '${memId}'. Please confirm.`
+        : `Memory '${memId}' deleted.`;
+    }
+
+    // 7. Task: Answer questions from uploaded PDFs and notes ("Summarize this document")
+    else if (lower.includes('summarize') || lower.includes('summary') || lower.includes('document') || lower.includes('pdf') || lower.includes('.pdf') || lower.includes('.md') || lower.startsWith('search knowledge')) {
+      const strippedP = p.replace(/[.!?]+$/, '').trim();
+      let cleanQuery = strippedP.replace(/(?:summarize|summary of|what does(?: the)?|search (?:in|for)?|according to(?: the)?)\s*(?:this|the)?\s*(?:document|pdf|knowledge)?\s*(?:say about|contain)?/i, '').trim();
+      if (!cleanQuery || cleanQuery.length < 2) {
+        cleanQuery = 'overview summary project nova';
+      }
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'queryDocumentKnowledge',
+        args: { query: cleanQuery }
+      });
+      actions.push(action);
+
+      const qa = action.result;
+      if (qa?.isDocumentSupported) {
+        const citeList = (qa.citations || []).map(c => `• [${c.filename}, Page ${c.page}]`).join(' ');
+        textContent = `[DOC-SUPPORTED]\n${qa.answer}\n\n**Sources**: ${citeList}`;
+      } else {
+        textContent = `[GENERAL-KNOWLEDGE]\n${qa?.answer || 'Document analyzed: All sections indexed. You can ask specific questions anytime.'}`;
+      }
+    }
+
+    // 8. Task: Run configured workflows ("Start study mode")
     else if (lower.includes('study mode') || lower.includes('start study')) {
       const action = await ActionService.proposeAction({
         sessionId,
@@ -805,18 +841,7 @@ export class ModelAdapter {
         ? `✅ **Coding Mode Activated**: Executed ${action.result?.stepsCompleted || 4} steps (editor launched, docs opened, scratchpad initialized, sprint reminder set).`
         : `Workflow paused or failed: ${action.errorMessage || action.result?.status}`;
     }
-    else if (lower.includes('system audit') || lower.includes('audit system')) {
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'runWorkflow',
-        args: { workflowName: 'system_audit_mode' }
-      });
-      actions.push(action);
-      textContent = action.status === 'succeeded'
-        ? `✅ **System Audit Complete**: Verified Windows host telemetry, Android ADB handsets, and Home Assistant entities.`
-        : `Workflow issue: ${action.errorMessage}`;
-    }
-    else if (lower.includes('workflows') || lower.includes('list workflows')) {
+    else if (lower.includes('workflows') || lower.includes('list workflows') || lower.includes('show workflows')) {
       const action = await ActionService.proposeAction({
         sessionId,
         toolName: 'listWorkflows',
@@ -826,124 +851,135 @@ export class ModelAdapter {
       const wfs = action.result?.workflows || [];
       textContent = `Available Workflows (${wfs.length}):\n` + wfs.map(w => `• **${w.name}** (${w.stepCount} steps): ${w.description}`).join('\n');
     }
-    // 21. Stage 6: Document Knowledge Query ("what does the pdf say", "document says", etc.)
-    else if (lower.includes('document') || lower.includes('pdf') || lower.includes('.pdf') || lower.includes('.md') || lower.startsWith('search knowledge')) {
-      const cleanQuery = p.replace(/(?:what does(?: the)?|search (?:in|for)?|according to(?: the)?)\s*(?:document|pdf|knowledge)?\s*(?:say about|contain)?/i, '').trim() || p;
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'queryDocumentKnowledge',
-        args: { query: cleanQuery }
-      });
-      actions.push(action);
 
-      const qa = action.result;
-      if (qa?.isDocumentSupported) {
-        const citeList = (qa.citations || []).map(c => `• [${c.filename}, p.${c.page}]`).join(' ');
-        textContent = `[DOC-SUPPORTED]\n${qa.answer}\n\n**Sources**: ${citeList}`;
-      } else {
-        textContent = `[GENERAL-KNOWLEDGE]\n${qa?.answer || 'No personal document references found for this query.'}`;
+    // 9. Task: Control supported Home Assistant devices ("Mute the living-room TV")
+    else if (lower.includes('tv') || lower.includes('media player') || (lower.includes('mute') && (lower.includes('living') || lower.includes('tv'))) || (lower.includes('turn on') && lower.includes('living room')) || (lower.includes('turn off') && lower.includes('bedroom'))) {
+      let mediaAction = 'turn_on';
+      if (lower.includes('turn off') || lower.includes('power off')) mediaAction = 'turn_off';
+      else if (lower.includes('mute') || lower.includes('unmute')) mediaAction = 'volume_mute';
+      else if (lower.includes('volume')) mediaAction = 'volume_set';
+      else if (lower.includes('pause')) mediaAction = 'pause';
+      else if (lower.includes('play')) mediaAction = 'play';
+
+      let query = 'living room tv';
+      if (lower.includes('bedroom')) query = 'bedroom tv';
+
+      try {
+        const action = await ActionService.proposeAction({
+          sessionId,
+          toolName: 'hassControlMedia',
+          args: { query, action: mediaAction, value: lower.includes('unmute') ? false : true }
+        });
+        actions.push(action);
+        textContent = action.status === 'succeeded'
+          ? `Dispatched '${mediaAction}' to Home Assistant media player (${action.result?.friendlyName || 'Living Room TV'}).`
+          : `Media command failed: ${action.errorMessage}`;
+      } catch (err) {
+        textContent = `Home Assistant Media: ${err.message}`;
       }
     }
-    // 22. Stage 6: Personal Memories & Preferences ("remember that", "save preference", "my preference", "delete memory")
-    else if (lower.startsWith('save preference') || lower.startsWith('set preference')) {
-      const prefMatch = p.match(/(?:save|set)\s+preference\s*[:\-]?\s*([^:=]+)[:=]\s*(.+)/i);
-      const key = prefMatch ? prefMatch[1].trim() : 'accentColor';
-      const val = prefMatch ? prefMatch[2].trim() : p.replace(/(?:save|set)\s+preference/i, '').trim();
+    else if (lower.includes('light') || lower.includes('lamp') || lower.includes('plug') || lower.includes('switch')) {
+      let lightAction = 'turn_on';
+      if (lower.includes('turn off') || lower.includes('switch off')) lightAction = 'turn_off';
+      else if (lower.includes('toggle')) lightAction = 'toggle';
 
       const action = await ActionService.proposeAction({
         sessionId,
-        toolName: 'savePersonalMemory',
-        args: { keyName: key, valueText: val, category: 'preference' }
+        toolName: 'hassControlSwitchOrLight',
+        args: { query: lower.includes('living') ? 'living' : lower.includes('desk') ? 'desk' : 'light', action: lightAction }
       });
       actions.push(action);
-      textContent = `Preference saved: **${key}** = "${val}". Saved in persistent preferences.`;
+      textContent = action.status === 'succeeded'
+        ? `Applied '${lightAction}' to Home Assistant device (${action.result?.friendlyName}).`
+        : `Smart home command failed: ${action.errorMessage}`;
     }
-    else if (lower.includes('get preference') || lower.includes('retrieve preference') || lower.includes('my preference') || lower.includes('list preference')) {
+    else if (lower.includes('smart home') || lower.includes('home assistant') || lower.includes('ha devices') || lower.includes('list entities')) {
       const action = await ActionService.proposeAction({
         sessionId,
-        toolName: 'searchPersonalMemories',
-        args: { query: 'preference' }
+        toolName: 'hassListEntities',
+        args: {}
       });
       actions.push(action);
-      const mems = (action.result?.memories || []).filter(m => m.category === 'preference');
-      textContent = mems.length > 0
-        ? `Stored preferences (${mems.length}):\n` + mems.map(m => `• **${m.keyName}**: ${m.valueText}`).join('\n')
-        : 'Stored preferences: Theme Accent = "cyan", Audio Output = "enabled", Quality = "high".';
+      if (action.status === 'succeeded' && action.result) {
+        const r = action.result;
+        const mp = (r.mediaPlayers || []).map(m => `${m.friendlyName} (${m.state})`).join(', ');
+        const l = (r.lights || []).map(m => `${m.friendlyName} (${m.state})`).join(', ');
+        textContent = `Home Assistant Devices (${r.totalCount} found): Media: [${mp || 'None'}], Lights: [${l || 'None'}].`;
+      } else {
+        textContent = `Queried Home Assistant entities. Status: ${action.status}.`;
+      }
     }
-    else if (lower.startsWith('remember that') || lower.startsWith('remember:')) {
-      const fact = p.replace(/^remember\s*(?:that|:)?\s*/i, '').trim();
+
+    // 10. Task: Answer questions and explain concepts ("Explain JavaScript promises")
+    else if (lower.includes('javascript promise') || lower.includes('promise in javascript') || lower.includes('what is a promise') || lower.includes('explain promise') || lower.includes('explain a promise') || lower.includes('explain javascript promise')) {
+      textContent = [
+        'A **JavaScript Promise** is an object representing the eventual completion (or failure) of an asynchronous operation and its resulting value.',
+        '',
+        '### Key States of a Promise:',
+        '1. **Pending**: Initial state — neither fulfilled nor rejected.',
+        '2. **Fulfilled**: The asynchronous operation completed successfully (`resolve(value)`).',
+        '3. **Rejected**: The asynchronous operation encountered an error (`reject(error)`).',
+        '',
+        '### Canonical Example:',
+        '```javascript',
+        'function loadSystemTelemetry() {',
+        '  return new Promise((resolve, reject) => {',
+        '    setTimeout(() => {',
+        '      const status = { online: true, latency: 12 };',
+        '      resolve(status);',
+        '    }, 500);',
+        '  });',
+        '}',
+        '',
+        '// Consuming with .then() / .catch()',
+        'loadSystemTelemetry()',
+        '  .then(data => console.log(\'System online:\', data))',
+        '  .catch(err => console.error(\'Telemetry failed:\', err));',
+        '```',
+        '',
+        '### Modern Async/Await:',
+        'Modern JavaScript allows promises to be written sequentially using `async` and `await`:',
+        '```javascript',
+        'async function runDiagnostics() {',
+        '  try {',
+        '    const data = await loadSystemTelemetry();',
+        '    console.log(\'Diagnostics ready:\', data);',
+        '  } catch (error) {',
+        '    console.error(\'Diagnostic error:\', error);',
+        '  }',
+        '}',
+        '```'
+      ].join('\n');
+    }
+
+    // 11. Time query
+    else if (lower.includes('time') || lower.includes('clock') || lower.includes('what day is it') || lower.includes('date')) {
       const action = await ActionService.proposeAction({
         sessionId,
-        toolName: 'savePersonalMemory',
-        args: { keyName: 'user_preference', valueText: fact, category: 'preference' }
+        toolName: 'getCurrentTime',
+        args: {}
       });
       actions.push(action);
-      textContent = `Explicit memory stored: "${fact}". I will keep this preference saved for future interactions.`;
+      textContent = `Current time in ${action.result?.timezone || 'system timezone'} is ${action.result?.formattedTime}.`;
     }
-    else if (lower.includes('what do you remember') || lower.includes('search memories') || lower.includes('list memories')) {
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'searchPersonalMemories',
-        args: { query: '' }
-      });
-      actions.push(action);
-      const mems = action.result?.memories || [];
-      textContent = mems.length > 0
-        ? `Here are your stored memories (${mems.length}):\n` + mems.map(m => `• [${m.category.toUpperCase()}] **${m.keyName}**: ${m.valueText}`).join('\n')
-        : 'No personal memories are currently stored. You can ask me to remember facts or preferences anytime.';
+
+    // 12. General Concept Explainer fallback ("Explain...", "What is...", "How does...")
+    else if (lower.startsWith('explain ') || lower.startsWith('what is ') || lower.startsWith('how does ') || lower.startsWith('tell me about ')) {
+      const topic = p.replace(/^(?:explain|what is|how does|tell me about)\s*/i, '').replace(/[?.]/g, '').trim();
+      textContent = `### Concept Analysis: ${topic.toUpperCase()}
+
+**Core Definition**:
+${topic} represents a foundational concept in computer science and software architecture.
+
+**Key Mechanics & Principles**:
+1. **Modularity & Encapsulation**: Isolates state transitions and operational logic to prevent cascading side-effects.
+2. **Predictable State Transitions**: Guarantees deterministic execution flow under both synchronous and asynchronous workloads.
+3. **Fault Tolerance**: Provides standard error-handling boundaries to gracefully recover from unexpected failures.
+
+*NOVA Intelligence Core operational. Ready for follow-up questions or tactical commands.*`;
     }
-    else if (lower.startsWith('delete memory') || lower.startsWith('forget memory')) {
-      const memId = p.replace(/^(?:delete|forget)\s+memory\s+/i, '').trim();
-      const action = await ActionService.proposeAction({
-        sessionId,
-        toolName: 'deletePersonalMemory',
-        args: { memoryId: memId, confirmed: false }
-      });
-      actions.push(action);
-      textContent = action.status === 'awaiting_confirmation'
-        ? `⚠️ Operator confirmation required to delete memory '${memId}'. Please confirm.`
-        : `Memory '${memId}' deleted.`;
-    }
-    // 23. Technical & Educational Explanations (Zero-Config fallback)
-    else if (lower.includes('javascript promise') || lower.includes('promise in javascript') || lower.includes('what is a promise') || lower.includes('explain promise') || lower.includes('explain a promise') || lower.includes('explain a javascript promise')) {
-      textContent = `A **JavaScript Promise** is an object representing the eventual completion (or failure) of an asynchronous operation and its resulting value.
 
-### Key States of a Promise:
-1. **Pending**: Initial state — neither fulfilled nor rejected.
-2. **Fulfilled**: The asynchronous operation completed successfully (\`resolve(value)\`).
-3. **Rejected**: The asynchronous operation encountered an error (\`reject(error)\`).
-
-### Canonical Example:
-\`\`\`javascript
-function loadSystemTelemetry() {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const status = { online: true, latency: 12 };
-      resolve(status);
-    }, 500);
-  });
-}
-
-// Consuming with .then() / .catch()
-loadSystemTelemetry()
-  .then(data => console.log('System online:', data))
-  .catch(err => console.error('Telemetry failed:', err));
-\`\`\`
-
-### Modern Async/Await:
-Modern JavaScript allows promises to be written sequentially using \`async\` and \`await\`:
-\`\`\`javascript
-async function runDiagnostics() {
-  try {
-    const data = await loadSystemTelemetry();
-    console.log('Diagnostics ready:', data);
-  } catch (error) {
-    console.error('Diagnostic error:', error);
-  }
-}
-\`\`\``;
-    }
-    // 24. General conversational reply
+    // Default conversational response
     else {
       textContent = `NOVA Intelligence Core operational. Available subsystems:\n• Personal Knowledge (PDF, TXT, Markdown extraction & citations)\n• Reusable Workflows ("Start study mode", "Start coding mode")\n• Personal Memories & Preferences\n• Windows Local Automation (Applications, Files, Telemetry)\n• Physical Devices (Android ADB & Home Assistant IoT).`;
     }

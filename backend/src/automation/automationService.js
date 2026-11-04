@@ -8,9 +8,12 @@ import { config } from '../config/env.js';
 
 class AutomationService {
   constructor() {
-    this.baseUrl = config.automation?.agentUrl || 'http://127.0.0.1:3002';
     this.secret = config.automation?.pairingSecret || 'nova_agent_pairing_secret_99a8b7c6';
     this.timeoutMs = config.automation?.timeoutMs || 15000;
+  }
+
+  getBaseUrl() {
+    return process.env.LOCAL_AGENT_URL || config.automation?.agentUrl || 'http://127.0.0.1:3002';
   }
 
   /**
@@ -20,7 +23,7 @@ class AutomationService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
-    const url = `${this.baseUrl}${endpoint}`;
+    const url = `${this.getBaseUrl()}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${this.secret}`,

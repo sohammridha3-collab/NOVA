@@ -33,6 +33,23 @@ export function parseDueAt(dueAtStr) {
     return new Date(now + ms);
   }
 
+  // Natural clock time e.g. "6 PM", "6:00 PM", "18:00"
+  const cleanTime = trimmed.replace(/\.$/, '').trim();
+  const timeOfDayMatch = cleanTime.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
+  if (timeOfDayMatch && (timeOfDayMatch[3] || timeOfDayMatch[2])) {
+    let hours = parseInt(timeOfDayMatch[1], 10);
+    const minutes = parseInt(timeOfDayMatch[2] || '0', 10);
+    const meridian = timeOfDayMatch[3]?.toLowerCase();
+    if (meridian === 'pm' && hours < 12) hours += 12;
+    if (meridian === 'am' && hours === 12) hours = 0;
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    if (d.getTime() <= Date.now()) {
+      d.setDate(d.getDate() + 1);
+    }
+    return d;
+  }
+
   // ISO or standard date format
   const parsed = new Date(trimmed);
   if (!isNaN(parsed.getTime())) {

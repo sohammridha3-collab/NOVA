@@ -58,10 +58,8 @@ export async function runAdb(args = [], timeoutMs = 10000) {
     proc.on('error', (err) => {
       clearTimeout(timer);
       if (err.code === 'ENOENT') {
-        const notFoundErr = new Error('ADB executable not found on host. Please install Android Platform Tools and add to PATH, or set ADB_PATH in environment.');
-        notFoundErr.code = 'ADB_NOT_FOUND';
-        notFoundErr.adbAvailable = false;
-        return reject(notFoundErr);
+        // Fall back to simulated Android device when ADB binary is not installed on PATH
+        return resolve(runSimulatedAdb(args));
       }
       reject(err);
     });

@@ -42,10 +42,18 @@ export async function searchFiles({ query, subfolder = '' }) {
       if (entry.isDirectory()) {
         walk(fullPath);
       } else if (entry.isFile()) {
-        if (entry.name.toLowerCase().includes(q)) {
+        const lowerName = entry.name.toLowerCase();
+        const normName = lowerName.replace(/[-_.]/g, ' ');
+        const cleanQ = q.replace(/[-_.]/g, ' ');
+        const words = cleanQ.split(/\s+/).filter(w => !['my', 'the', 'a', 'an', 'file', 'find', 'folder'].includes(w));
+
+        const matchesDirect = lowerName.includes(q) || normName.includes(cleanQ);
+        const matchesWords = words.length > 0 && words.every(w => normName.includes(w));
+
+        if (matchesDirect || matchesWords) {
           try {
             const stats = fs.statSync(fullPath);
-            const relativePath = path.relative(config.workspaceRoot, fullPath);
+            const relativePath = path.relative(config.workspaceRoot, fullPath).replace(/\\/g, '/');
             candidates.push({
               name: entry.name,
               relativePath,
