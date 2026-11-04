@@ -146,6 +146,79 @@ export const ReminderService = {
     }
 
     return { cancelled: true, reminderId: id };
+  },
+
+  /**
+   * Periodically check for due reminders, mark as delivered, and record to action log.
+   */
+  async checkDueReminders() {
+    const now = new Date();
+    const delivered = [];
+
+    try {
+      const [rows] = await query(
+        "SELECT id, title, due_at AS dueAt, priority, status FROM reminders WHERE status = 'pending' AND due_at <= NOW()"
+      );
+      if (rows && rows.length > 0) {
+        await query(
+          "UPDATE reminders SET status = 'delivered', updated_at = NOW() WHERE status = 'pending' AND due_at <= NOW()"
+        );
+        delivered.push(...rows);
+      }
+    } catch (e) {
+      for (const [id, rem] of inMemoryReminders.entries()) {
+        if (rem.status === 'pending') {
+          const due = new Date(rem.dueAt);
+          if (due.getTime() <= now.getTime()) {
+            rem.status = 'delivered';
+            rem.updatedAt = now.toISOString();
+            delivered.push(rem);
+          }
+        }
+      }
+    }
+
+    for (const rem of delivered) {
+      try {
+        console.log(`🔔 Reminder Due: "${rem.title}" at ${now.toLocaleTimeString()}`);
+        await recordActionLog({
+          actionType: 'REMINDER_DELIVERED',
+          details: {
+            reminderId: rem.id,
+            title: rem.title,
+            dueAt: rem.dueAt,
+            deliveredAt: now.toISOString()
+          }
+        });
+      } catch (err) {}
+    }
+
+    return delivered;
+  },
+
+  /**
+   * Start recurring background timer for delivery checks
+   */
+  startScheduler(intervalMs = 5000) {
+    if (this._intervalId) return;
+    this._intervalId = setInterval(async () => {
+      try {
+        await this.checkDueReminders();
+      } catch (e) {}
+    }, intervalMs);
+    if (this._intervalId && this._intervalId.unref) {
+      this._intervalId.unref();
+    }
+  },
+
+  /**
+   * Stop recurring timer
+   */
+  stopScheduler() {
+    if (this._intervalId) {
+      clearInterval(this._intervalId);
+      this._intervalId = null;
+    }
   }
 };
 

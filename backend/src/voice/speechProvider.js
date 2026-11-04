@@ -10,7 +10,8 @@
  * - Audio is kept strictly transient: all temp files cleaned up in finally blocks
  */
 
-import { spawn } from 'child_process';
+import { promisify } from 'node:util';
+import { spawn, execFile } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -61,13 +62,11 @@ export class FasterWhisperProvider extends ISpeechProvider {
     let fasterWhisperInstalled = false;
 
     try {
-      const checkProc = spawn(this.pythonPath, ['-c', 'import faster_whisper; print("OK")']);
-      let output = '';
-      for await (const chunk of checkProc.stdout) output += chunk;
-      if (output.trim() === 'OK') {
-        pythonAvailable = true;
-        fasterWhisperInstalled = true;
-      }
+      const { stdout } = await promisify(execFile)(this.pythonPath,
+        ['-c', 'import importlib.util; print(int(importlib.util.find_spec("faster_whisper") is not None))'],
+        { timeout: 5000 });
+      pythonAvailable = true;
+      fasterWhisperInstalled = stdout.trim() === '1';
     } catch (e) {
       // Python not available
     }
@@ -301,4 +300,5 @@ export function setSpeechProvider(provider) {
   }
   currentSpeechProvider = provider;
 }
+
 

@@ -11,7 +11,7 @@ import { modelAdapter } from './ai/modelAdapter.js';
 
 const app = createApp();
 
-const server = app.listen(config.port, async () => {
+const server = app.listen(config.port, process.env.HOST || '127.0.0.1', async () => {
   console.log('========================================================');
   console.log(`🌌 NOVA Backend API Server v2.0.0 Online`);
   console.log(`📡 URL: http://localhost:${config.port}`);
@@ -34,17 +34,28 @@ const server = app.listen(config.port, async () => {
   const aiStatus = modelAdapter.getStatus();
   console.log(`🤖 AI Provider: ${aiStatus.provider.toUpperCase()} (${aiStatus.modelName}) - Status: ${aiStatus.status}`);
 
-  // Reconcile overdue reminders on startup
+  // Reconcile overdue reminders on startup and start scheduler
   try {
     const recResult = await ReminderService.reconcileOverdueReminders();
     if (recResult.reconciledCount > 0) {
       console.log(`⏱️ Reminder Reconciliation: ${recResult.reconciledCount} overdue reminder(s) updated.`);
     }
+    ReminderService.startScheduler();
+    console.log(`🔔 Reminder Scheduler: Active (5s evaluation heartbeat)`);
   } catch (err) {
     console.warn(`⚠️ Reminder reconciliation warning: ${err.message}`);
   }
 
   console.log('========================================================');
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Backend port collision: Port ${config.port} is already in use by another process.`);
+    process.exit(1);
+  }
+  console.error(`❌ Backend server error:`, err.message);
+  process.exit(1);
 });
 
 // Graceful shutdown handling

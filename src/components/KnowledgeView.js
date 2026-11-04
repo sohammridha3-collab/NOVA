@@ -603,7 +603,7 @@ export class KnowledgeView {
       } else if (result.status === 'failed') {
         toast.error(`Workflow stopped safely: Step ${result.failedAtStep + 1} failed (${result.error}).`);
       } else if (result.status === 'awaiting_confirmation') {
-        toast.warn(`Workflow paused: Step ${result.pendingStep.stepIndex + 1} requires operator confirmation.`);
+        toast.warning(`Workflow paused: Step ${result.pendingStep.stepIndex + 1} requires operator confirmation.`);
       }
 
       await this._loadTimeline();
@@ -693,7 +693,7 @@ export class KnowledgeView {
       btnCancel.addEventListener('click', async () => {
         try {
           const res = await api.cancelWorkflowRun(run.runId);
-          toast.warn('Workflow execution cancelled.');
+          toast.warning('Workflow execution cancelled.');
           this._renderActiveWorkflowStatus(res);
           await this._loadTimeline();
         } catch (e) {
@@ -755,4 +755,5 @@ export class KnowledgeView {
       .join('');
   }
 }
+
 

@@ -595,8 +595,27 @@ class NovaApp {
         if (e.target === demoModal) closeDemoModal();
       });
 
+      const loginForm = document.getElementById('ownerLogin');
+      loginForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const status = document.getElementById('loginStatus');
+        try {
+          await api.login(loginForm.elements.username.value.trim(), loginForm.elements.password.value);
+          loginForm.elements.password.value = '';
+          api.setDemoMode(false);
+          status.textContent = 'Signed in. Live mode is active.';
+          await this._refreshBackendConnectionStatus();
+        } catch (error) {
+          status.textContent = error.message;
+        }
+      });
       if (btnToggleOperatingMode) {
         btnToggleOperatingMode.addEventListener('click', () => {
+          if (api.isDemoMode && !api.authToken) {
+            document.getElementById('loginStatus').textContent = 'Sign in below to use live mode.';
+            loginForm.elements.username.focus();
+            return;
+          }
           api.setDemoMode(!api.isDemoMode);
           this._refreshBackendConnectionStatus();
           toast.info(api.isDemoMode ? 'Switched to Demo Mode (Local Simulator)' : 'Switched to Live Backend Mode');
@@ -854,3 +873,4 @@ if (document.readyState === 'loading') {
 } else {
   bootNovaApp();
 }
+

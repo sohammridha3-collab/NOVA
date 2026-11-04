@@ -233,6 +233,14 @@ export function createAgentApp() {
 // Start server if executed directly
 if (process.argv[1] && process.argv[1].endsWith('server.js')) {
   const server = createAgentApp();
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Laptop Agent port collision: Port ${config.port} is already in use.`);
+      process.exit(1);
+    }
+    console.error(`❌ Agent server error:`, err.message);
+    process.exit(1);
+  });
   server.listen(config.port, config.host, () => {
     console.log('========================================================');
     console.log(`🤖 NOVA Local Automation Agent v1.0.0 Online`);

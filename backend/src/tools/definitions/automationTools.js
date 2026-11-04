@@ -38,7 +38,7 @@ export const openConfiguredAppTool = {
     properties: {
       appName: {
         type: 'string',
-        enum: ['notepad', 'calc', 'explorer', 'paint', 'edge'],
+        enum: ['notepad', 'calc', 'calculator', 'explorer', 'paint', 'edge'],
         description: 'Whitelist application identifier to open.'
       },
       filePath: {
@@ -51,7 +51,7 @@ export const openConfiguredAppTool = {
     if (!args.appName || typeof args.appName !== 'string') {
       return { valid: false, error: "Parameter 'appName' is required." };
     }
-    const allowed = ['notepad', 'calc', 'explorer', 'paint', 'edge'];
+    const allowed = ['notepad', 'calc', 'calculator', 'explorer', 'paint', 'edge'];
     if (!allowed.includes(args.appName.toLowerCase().trim())) {
       return { valid: false, error: `Application '${args.appName}' is not permitted. Allowed: ${allowed.join(', ')}` };
     }

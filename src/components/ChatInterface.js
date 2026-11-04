@@ -535,11 +535,26 @@ export class ChatInterface {
           </div>
         `;
       }
-    } else if (isFailed && act.errorMessage) {
+    } else if (isFailed) {
+      const errorMsg = act.errorMessage || 'Execution encountered an unhandled error.';
+      let recoveryGuide = 'Verify system status and operational dependencies.';
+      if (act.toolName && ['openConfiguredApp', 'searchWorkspaceFiles', 'openWorkspaceFile', 'createWorkspaceNote', 'deleteWorkspaceFile', 'openWebUrl', 'getOperatingSystemInfo'].includes(act.toolName)) {
+        recoveryGuide = 'Ensure local automation agent is running on 127.0.0.1:3002 via "npm run agent:start".';
+      } else if (act.toolName && act.toolName.startsWith('android')) {
+        recoveryGuide = 'Ensure ADB is installed, and device is connected with USB debugging authorized ("adb devices").';
+      } else if (act.toolName && act.toolName.startsWith('hass')) {
+        recoveryGuide = 'Check Home Assistant configuration (HASS_BASE_URL, HASS_TOKEN) in backend/.env.';
+      } else if (act.toolName && ['saveNote', 'searchNotes', 'deleteNote', 'createReminder', 'listReminders', 'savePersonalMemory', 'deletePersonalMemory'].includes(act.toolName)) {
+        recoveryGuide = 'Verify backend database connectivity or run migrations ("npm run db:migrate").';
+      }
+
       resultDisplay = `
         <div class="action-error-box">
           <div class="result-header">EXECUTION FAILED:</div>
-          <div class="error-text">${this._escapeHtml(act.errorMessage)}</div>
+          <div class="error-text">${this._escapeHtml(errorMsg)}</div>
+          <div class="action-recovery-guide" style="margin-top: 0.45rem; font-size: 0.74rem; color: #fbbf24; border-top: 1px dashed rgba(245, 158, 11, 0.3); padding-top: 0.35rem;">
+            <strong>Suggested Recovery:</strong> ${this._escapeHtml(recoveryGuide)}
+          </div>
         </div>
       `;
     } else if (isCancelled) {
@@ -846,8 +861,10 @@ export class ChatInterface {
         }
 
         const settings = storage.loadSettings();
-        if (settings.ttsEnabled && !speech.isMuted) {
-          const spoke = speech.speak(finalMsg.content, {
+        const shouldSpeak = (settings.ttsEnabled || finalMsg.meta?.forceSpeak || Boolean(finalMsg.meta?.speakText)) && !speech.isMuted;
+        if (shouldSpeak) {
+          const textToSpeak = finalMsg.meta?.speakText || finalMsg.content;
+          const spoke = speech.speak(textToSpeak, {
             voiceURI: settings.voiceURI,
             rate: settings.speechRate,
             pitch: settings.speechPitch

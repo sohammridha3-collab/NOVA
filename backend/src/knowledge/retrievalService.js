@@ -144,7 +144,7 @@ export class BM25KnowledgeRetriever extends BaseRetriever {
     const scoredChunks = [];
 
     for (const chunk of candidateChunks) {
-      const text = chunk.content || '';
+      const text = ((chunk.sectionTitle ? chunk.sectionTitle + '\n' : '') + (chunk.content || '')).trim();
       const textLower = text.toLowerCase();
       const chunkTokens = this._tokenize(text);
       const chunkLen = text.length;

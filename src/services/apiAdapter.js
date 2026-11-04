@@ -17,7 +17,6 @@ export class ApiAdapter {
     this.isDemoMode = savedDemo !== null ? savedDemo === 'true' : true;
 
     this.apiBase = '/api';
-    this.apiKey = 'nova_dev_api_key_8f1c4e92';
     this.authToken = localStorage.getItem('nova_auth_token') || null;
     this.activeStreamAbort = null;
     this.lastBackendStatus = null;
@@ -59,6 +58,9 @@ export class ApiAdapter {
           database: body.data?.database?.database,
           message: 'Backend server and MySQL database are online and ready.'
         };
+      } else if (!body || typeof body.success !== 'boolean') {
+        this.lastBackendStatus = { status: 'offline', ready: false, db: 'unknown',
+          message: 'NOVA API unavailable. Start the backend and check the /api proxy.' };
       } else if (res.status === 503 && body?.error?.code === 'DATABASE_NOT_READY') {
         this.lastBackendStatus = {
           status: 'connected',
@@ -108,9 +110,8 @@ export class ApiAdapter {
   async _apiRequest(endpoint, options = {}) {
     const url = `${this.apiBase}${endpoint}`;
     const headers = {
-      'Content-Type': 'application/json',
+      ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       Accept: 'application/json',
-      'X-API-Key': this.apiKey,
       ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {}),
       ...(options.headers || {})
     };
@@ -286,24 +287,7 @@ export class ApiAdapter {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = this._getStoredToken();
-    const headers = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    else headers['X-API-Key'] = this.ownerApiKey;
-
-    const res = await fetch(`${this.baseUrl}/knowledge/upload`, {
-      method: 'POST',
-      headers,
-      body: formData
-    });
-
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const err = new Error(json.error?.message || `Upload failed with status ${res.status}`);
-      err.code = json.error?.code || 'UPLOAD_FAILED';
-      throw err;
-    }
-    return json.data;
+    return this._apiRequest('/knowledge/upload', { method: 'POST', body: formData });
   }
 
   async getKnowledgeDocuments() {
@@ -533,11 +517,8 @@ export class ApiAdapter {
       if (onStartThinking) onStartThinking();
 
       // Ensure a valid session exists in the backend
-      let targetSessionId = sessionId;
-      if (!targetSessionId) {
-        const newSession = await this.createSession('New Tactical Session');
-        targetSessionId = newSession.id;
-      }
+      const mappingKey = sessionId && `nova_backend_session:${sessionId}`;
+      const targetSessionId = mappingKey ? localStorage.getItem(mappingKey) : null;
 
       // Dispatch to Stage 2 POST /api/chat
       const result = await this._apiRequest('/chat', {
@@ -548,6 +529,7 @@ export class ApiAdapter {
         })
       });
 
+      if (mappingKey && result?.sessionId) localStorage.setItem(mappingKey, result.sessionId);
       if (isCancelled()) return;
 
       const assistantMsg = result?.message || {
@@ -590,3 +572,4 @@ export class ApiAdapter {
 }
 
 export const api = new ApiAdapter();
+

@@ -43,6 +43,13 @@ export const config = {
       description: 'Windows Calculator utility',
       acceptsFileArg: false
     },
+    calculator: {
+      id: 'calculator',
+      name: 'Windows Calculator',
+      executable: 'calc.exe',
+      description: 'Windows Calculator utility',
+      acceptsFileArg: false
+    },
     explorer: {
       id: 'explorer',
       name: 'Windows Explorer',

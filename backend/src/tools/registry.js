@@ -47,6 +47,12 @@ import {
 class ToolRegistry {
   constructor() {
     this.tools = new Map();
+    this._initialized = false;
+  }
+
+  _ensureInitialized() {
+    if (this._initialized) return;
+    this._initialized = true;
 
     // Register all core tools
     this.register(timeTool);
@@ -100,6 +106,7 @@ class ToolRegistry {
    * Check if a tool name is registered
    */
   has(name) {
+    this._ensureInitialized();
     return this.tools.has(name);
   }
 
@@ -107,6 +114,7 @@ class ToolRegistry {
    * Get a registered tool by name
    */
   get(name) {
+    this._ensureInitialized();
     return this.tools.get(name);
   }
 
@@ -114,6 +122,7 @@ class ToolRegistry {
    * Return array of all registered tools
    */
   list() {
+    this._ensureInitialized();
     return Array.from(this.tools.values());
   }
 
@@ -121,6 +130,7 @@ class ToolRegistry {
    * Export JSON schemas suitable for LLM Function Calling (Gemini / OpenAI formats)
    */
   getToolDeclarations() {
+    this._ensureInitialized();
     return this.list().map(t => ({
       name: t.name,
       description: t.description,
@@ -133,6 +143,7 @@ class ToolRegistry {
    * Format tool declarations for Gemini API functionDeclarations format
    */
   getGeminiFunctionDeclarations() {
+    this._ensureInitialized();
     return this.list().map(t => ({
       name: t.name,
       description: t.description,
@@ -144,6 +155,7 @@ class ToolRegistry {
    * Format tool declarations for OpenAI Tools format
    */
   getOpenAITools() {
+    this._ensureInitialized();
     return this.list().map(t => ({
       type: 'function',
       function: {
@@ -163,6 +175,7 @@ class ToolRegistry {
    * @returns {Promise<any>} Execution result
    */
   async executeTool(toolName, args = {}, options = {}) {
+    this._ensureInitialized();
     // 1. Strict Shell Execution Ban
     const forbiddenShellKeywords = ['bash', 'sh', 'powershell', 'cmd', 'exec', 'executeshell', 'eval', 'terminal', 'spawn', 'runcommand'];
     if (forbiddenShellKeywords.includes(toolName.toLowerCase())) {
