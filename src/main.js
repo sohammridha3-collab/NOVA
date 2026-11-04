@@ -15,6 +15,7 @@ import { ChatInterface } from './components/ChatInterface.js';
 import { WebsiteStudio } from './components/WebsiteStudio.js';
 import { HistoryView } from './components/HistoryView.js';
 import { DevicesView } from './components/DevicesView.js';
+import { KnowledgeView } from './components/KnowledgeView.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { Navigation } from './components/Navigation.js';
 import { speech } from './services/speech.js';
@@ -29,6 +30,7 @@ class NovaApp {
     this.studio = null;
     this.historyView = null;
     this.devicesView = null;
+    this.knowledgeView = null;
     this.settingsModal = null;
     this.navigation = null;
     this.telemetryLogs = [];
@@ -136,7 +138,20 @@ class NovaApp {
       console.error('[NOVA] DevicesView initialization failed:', err);
     }
 
-    // 8. Initialize Settings Modal
+    // 8. Initialize Personal Knowledge & Workflows View (Stage 6)
+    try {
+      const knowledgeContainer = document.getElementById('viewKnowledge');
+      if (knowledgeContainer) {
+        this.knowledgeView = new KnowledgeView({
+          container: knowledgeContainer,
+          onActivityLogged: logActivity
+        });
+      }
+    } catch (err) {
+      console.error('[NOVA] KnowledgeView initialization failed:', err);
+    }
+
+    // 9. Initialize Settings Modal
     try {
       this.settingsModal = new SettingsModal({
         neuralCore: null,
@@ -167,10 +182,10 @@ class NovaApp {
     this._setupHeaderControls();
     this._setupStageInteractivity();
 
-    // 10. Hash Routing Support (#assistant, #studio, #history, #devices, #settings)
+    // 10. Hash Routing Support (#assistant, #studio, #history, #devices, #knowledge, #settings)
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
-      if (['assistant', 'studio', 'history', 'devices'].includes(hash)) {
+      if (['assistant', 'studio', 'history', 'devices', 'knowledge'].includes(hash)) {
         if (this.navigation) this.navigation.setActiveView(hash);
       } else if (hash === 'settings') {
         this._openSettings();
@@ -178,7 +193,7 @@ class NovaApp {
     });
 
     const initialHash = window.location.hash.replace('#', '');
-    if (['assistant', 'studio', 'history', 'devices'].includes(initialHash)) {
+    if (['assistant', 'studio', 'history', 'devices', 'knowledge'].includes(initialHash)) {
       if (this.navigation) this.navigation.setActiveView(initialHash);
     } else if (initialHash === 'settings') {
       this._openSettings();
@@ -472,7 +487,8 @@ class NovaApp {
       assistant: document.getElementById('viewAssistant'),
       studio: document.getElementById('viewStudio'),
       history: document.getElementById('viewHistory'),
-      devices: document.getElementById('viewDevices')
+      devices: document.getElementById('viewDevices'),
+      knowledge: document.getElementById('viewKnowledge')
     };
 
     Object.keys(views).forEach((key) => {
@@ -491,6 +507,10 @@ class NovaApp {
 
     if (viewName === 'devices' && this.devicesView) {
       this.devicesView.refresh();
+    }
+
+    if (viewName === 'knowledge' && this.knowledgeView) {
+      this.knowledgeView.refresh();
     }
 
     this._addTelemetryLog(`Navigated view: ${viewName.toUpperCase()}`);

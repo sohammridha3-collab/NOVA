@@ -1,0 +1,4 @@
+NOVA Neural Operating System Handbook.
+The system is equipped with an electric-cyan reactive visual core and tactile controls.
+Voice transcription is managed through a faster-whisper Python worker supporting English, Hindi, and Bengali.
+Windows automation executes strictly isolated processes without shell invocation.

@@ -63,7 +63,7 @@ export function errorHandler(err, req, res, next) {
   }
 
   // 4. Custom App Error with explicit status code
-  const statusCode = err.statusCode || 500;
+  const statusCode = err.statusCode || err.status || 500;
   const errorCode = err.code || (statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : 'REQUEST_ERROR');
   const message = err.message || 'An unexpected internal error occurred.';
 

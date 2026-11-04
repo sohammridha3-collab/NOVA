@@ -15,6 +15,9 @@ import notesRoutes from './notes.routes.js';
 import voiceRoutes from './voice.routes.js';
 import automationRoutes from './automation.routes.js';
 import deviceRoutes from './device.routes.js';
+import knowledgeRoutes from './knowledge.routes.js';
+import workflowRoutes from './workflow.routes.js';
+import activityRoutes from './activity.routes.js';
 
 const apiRouter = Router();
 
@@ -30,5 +33,8 @@ apiRouter.use('/notes', notesRoutes);
 apiRouter.use('/voice', voiceRoutes);
 apiRouter.use('/automation', automationRoutes);
 apiRouter.use('/devices', deviceRoutes);
+apiRouter.use('/knowledge', knowledgeRoutes);
+apiRouter.use('/workflows', workflowRoutes);
+apiRouter.use('/activity', activityRoutes);
 
 export default apiRouter;

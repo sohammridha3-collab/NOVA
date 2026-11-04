@@ -280,6 +280,153 @@ export class ApiAdapter {
   }
 
   /**
+   * Stage 6 Personal Knowledge & Document Indexing
+   */
+  async uploadKnowledgeDocument(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = this._getStoredToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    else headers['X-API-Key'] = this.ownerApiKey;
+
+    const res = await fetch(`${this.baseUrl}/knowledge/upload`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(json.error?.message || `Upload failed with status ${res.status}`);
+      err.code = json.error?.code || 'UPLOAD_FAILED';
+      throw err;
+    }
+    return json.data;
+  }
+
+  async getKnowledgeDocuments() {
+    try {
+      const res = await this._apiRequest('/knowledge/documents');
+      return res.documents || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async deleteKnowledgeDocument(id) {
+    return this._apiRequest(`/knowledge/documents/${id}`, { method: 'DELETE' });
+  }
+
+  async queryKnowledgeDocuments(queryText, topK = 4) {
+    return this._apiRequest('/knowledge/query', {
+      method: 'POST',
+      body: JSON.stringify({ query: queryText, topK })
+    });
+  }
+
+  /**
+   * Stage 6 Personal Memories & Explicit Preferences
+   */
+  async getPersonalMemories(category = null, search = null) {
+    const params = new URLSearchParams();
+    if (category) params.set('category', category);
+    if (search) params.set('search', search);
+    const q = params.toString() ? `?${params.toString()}` : '';
+
+    try {
+      const res = await this._apiRequest(`/knowledge/memories${q}`);
+      return res.memories || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async createPersonalMemory(data) {
+    return this._apiRequest('/knowledge/memories', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updatePersonalMemory(id, data) {
+    return this._apiRequest(`/knowledge/memories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async deletePersonalMemory(id) {
+    return this._apiRequest(`/knowledge/memories/${id}`, { method: 'DELETE' });
+  }
+
+  /**
+   * Stage 6 Reusable Workflows
+   */
+  async getWorkflows() {
+    try {
+      const res = await this._apiRequest('/workflows');
+      return res.workflows || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async createWorkflow(workflowData) {
+    return this._apiRequest('/workflows', {
+      method: 'POST',
+      body: JSON.stringify(workflowData)
+    });
+  }
+
+  async proposeWorkflow(id, params = {}) {
+    const q = new URLSearchParams(params).toString();
+    return this._apiRequest(`/workflows/${encodeURIComponent(id)}/propose${q ? `?${q}` : ''}`);
+  }
+
+  async runWorkflow(id, params = {}, confirmed = false) {
+    return this._apiRequest(`/workflows/${encodeURIComponent(id)}/run`, {
+      method: 'POST',
+      body: JSON.stringify({ params, confirmed })
+    });
+  }
+
+  async getWorkflowRuns(limit = 20) {
+    try {
+      const res = await this._apiRequest(`/workflows/runs?limit=${limit}`);
+      return res.runs || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async resumeWorkflowRun(runId, data = {}) {
+    return this._apiRequest(`/workflows/runs/${encodeURIComponent(runId)}/resume`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async cancelWorkflowRun(runId) {
+    return this._apiRequest(`/workflows/runs/${encodeURIComponent(runId)}/cancel`, {
+      method: 'POST'
+    });
+  }
+
+  /**
+   * Stage 6 Activity Timeline
+   */
+  async getActivityTimeline(limit = 25) {
+    try {
+      const res = await this._apiRequest(`/activity/timeline?limit=${limit}`);
+      return res.timeline || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
    * Send a message and handle the response.
    * If Demo Mode is active: generates realistic local streaming animation.
    * If Live Mode is active: dispatches to Node.js/Express backend via POST /api/chat.

@@ -12,13 +12,16 @@
     "test:voice": "node tests/voice.test.js",
     "test:automation": "node tests/automation.test.js",
     "test:devices": "node tests/devices.test.js",
-    "test:all": "node tests/api.test.js && node tests/voice.test.js && node tests/automation.test.js && node tests/devices.test.js"
+    "test:knowledge": "node tests/knowledge.test.js",
+    "test:workflows": "node tests/workflows.test.js",
+    "test:all": "node tests/api.test.js && node tests/voice.test.js && node tests/automation.test.js && node tests/devices.test.js && node tests/knowledge.test.js && node tests/workflows.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "multer": "^2.5.0",
-    "mysql2": "^3.12.0"
+    "mysql2": "^3.12.0",
+    "pdf-parse": "^2.4.5"
   }
 }

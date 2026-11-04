@@ -651,9 +651,106 @@ export class ModelAdapter {
         ? `Applied '${lightAction}' to Home Assistant device (${action.result?.friendlyName}).`
         : `Smart home command failed: ${action.errorMessage}`;
     }
-    // 20. General conversational reply
+    // 20. Stage 6: Workflows ("Start study mode", "Start coding mode", etc.)
+    else if (lower.includes('study mode') || lower.includes('start study')) {
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'runWorkflow',
+        args: { workflowName: 'start_study_mode' }
+      });
+      actions.push(action);
+      textContent = action.status === 'succeeded'
+        ? `✅ **Study Mode Activated**: Executed ${action.result?.stepsCompleted || 4} steps (study note created, 45-min timer set, media muted, study lighting adjusted).`
+        : `Workflow paused or failed: ${action.errorMessage || action.result?.status}`;
+    }
+    else if (lower.includes('coding mode') || lower.includes('start coding')) {
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'runWorkflow',
+        args: { workflowName: 'start_coding_mode' }
+      });
+      actions.push(action);
+      textContent = action.status === 'succeeded'
+        ? `✅ **Coding Mode Activated**: Executed ${action.result?.stepsCompleted || 4} steps (editor launched, docs opened, scratchpad initialized, sprint reminder set).`
+        : `Workflow paused or failed: ${action.errorMessage || action.result?.status}`;
+    }
+    else if (lower.includes('system audit') || lower.includes('audit system')) {
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'runWorkflow',
+        args: { workflowName: 'system_audit_mode' }
+      });
+      actions.push(action);
+      textContent = action.status === 'succeeded'
+        ? `✅ **System Audit Complete**: Verified Windows host telemetry, Android ADB handsets, and Home Assistant entities.`
+        : `Workflow issue: ${action.errorMessage}`;
+    }
+    else if (lower.includes('workflows') || lower.includes('list workflows')) {
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'listWorkflows',
+        args: {}
+      });
+      actions.push(action);
+      const wfs = action.result?.workflows || [];
+      textContent = `Available Workflows (${wfs.length}):\n` + wfs.map(w => `• **${w.name}** (${w.stepCount} steps): ${w.description}`).join('\n');
+    }
+    // 21. Stage 6: Document Knowledge Query ("what does the pdf say", "document says", etc.)
+    else if (lower.includes('document') || lower.includes('pdf') || lower.includes('.pdf') || lower.includes('.md') || lower.startsWith('search knowledge')) {
+      const cleanQuery = p.replace(/(?:what does(?: the)?|search (?:in|for)?|according to(?: the)?)\s*(?:document|pdf|knowledge)?\s*(?:say about|contain)?/i, '').trim() || p;
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'queryDocumentKnowledge',
+        args: { query: cleanQuery }
+      });
+      actions.push(action);
+
+      const qa = action.result;
+      if (qa?.isDocumentSupported) {
+        const citeList = (qa.citations || []).map(c => `• [${c.filename}, p.${c.page}]`).join(' ');
+        textContent = `[DOC-SUPPORTED]\n${qa.answer}\n\n**Sources**: ${citeList}`;
+      } else {
+        textContent = `[GENERAL-KNOWLEDGE]\n${qa?.answer || 'No personal document references found for this query.'}`;
+      }
+    }
+    // 22. Stage 6: Personal Memories ("remember that", "what do you remember", "delete memory")
+    else if (lower.startsWith('remember that') || lower.startsWith('remember:')) {
+      const fact = p.replace(/^remember\s*(?:that|:)?\s*/i, '').trim();
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'savePersonalMemory',
+        args: { keyName: 'user_preference', valueText: fact, category: 'preference' }
+      });
+      actions.push(action);
+      textContent = `Explicit memory stored: "${fact}". I will keep this preference saved for future interactions.`;
+    }
+    else if (lower.includes('what do you remember') || lower.includes('search memories') || lower.includes('list memories')) {
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'searchPersonalMemories',
+        args: { query: '' }
+      });
+      actions.push(action);
+      const mems = action.result?.memories || [];
+      textContent = mems.length > 0
+        ? `Here are your stored memories (${mems.length}):\n` + mems.map(m => `• [${m.category.toUpperCase()}] **${m.keyName}**: ${m.valueText}`).join('\n')
+        : 'No personal memories are currently stored. You can ask me to remember facts or preferences anytime.';
+    }
+    else if (lower.startsWith('delete memory') || lower.startsWith('forget memory')) {
+      const memId = p.replace(/^(?:delete|forget)\s+memory\s+/i, '').trim();
+      const action = await ActionService.proposeAction({
+        sessionId,
+        toolName: 'deletePersonalMemory',
+        args: { memoryId: memId, confirmed: false }
+      });
+      actions.push(action);
+      textContent = action.status === 'awaiting_confirmation'
+        ? `⚠️ Operator confirmation required to delete memory '${memId}'. Please confirm.`
+        : `Memory '${memId}' deleted.`;
+    }
+    // 23. General conversational reply
     else {
-      textContent = `NOVA Intelligence Core operational. You can control Windows applications, workspace files, Android devices (ADB), and Home Assistant smart home devices (TVs, lights, switches).`;
+      textContent = `NOVA Intelligence Core operational. Available subsystems:\n• Personal Knowledge (PDF, TXT, Markdown extraction & citations)\n• Reusable Workflows ("Start study mode", "Start coding mode")\n• Personal Memories & Preferences\n• Windows Local Automation (Applications, Files, Telemetry)\n• Physical Devices (Android ADB & Home Assistant IoT).`;
     }
 
     return {

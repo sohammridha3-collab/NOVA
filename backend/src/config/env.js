@@ -49,5 +49,12 @@ export const config = {
     baseUrl: process.env.HASS_BASE_URL || '',
     token: process.env.HASS_TOKEN || '',
     timeoutMs: parseInt(process.env.HASS_TIMEOUT_MS, 10) || 10000
+  },
+  knowledge: {
+    documentsDir: process.env.DOCUMENTS_DIR || path.resolve(__dirname, '../../data/documents'),
+    maxFileSizeMb: parseInt(process.env.MAX_DOCUMENT_SIZE_MB, 10) || 25,
+    maxChunkSize: parseInt(process.env.MAX_CHUNK_SIZE, 10) || 600,
+    chunkOverlap: parseInt(process.env.CHUNK_OVERLAP, 10) || 100,
+    topKDefault: parseInt(process.env.RETRIEVAL_TOP_K, 10) || 4
   }
 };

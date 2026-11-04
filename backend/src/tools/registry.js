@@ -35,6 +35,14 @@ import {
   hassControlMediaTool,
   hassControlSwitchOrLightTool
 } from './definitions/deviceTools.js';
+import {
+  queryDocumentKnowledgeTool,
+  savePersonalMemoryTool,
+  searchPersonalMemoriesTool,
+  deletePersonalMemoryTool,
+  listWorkflowsTool,
+  runWorkflowTool
+} from './definitions/knowledgeTools.js';
 
 class ToolRegistry {
   constructor() {
@@ -68,6 +76,14 @@ class ToolRegistry {
     this.register(hassGetEntityStateTool);
     this.register(hassControlMediaTool);
     this.register(hassControlSwitchOrLightTool);
+
+    // Register Stage 6 knowledge & reusable workflow tools
+    this.register(queryDocumentKnowledgeTool);
+    this.register(savePersonalMemoryTool);
+    this.register(searchPersonalMemoriesTool);
+    this.register(deletePersonalMemoryTool);
+    this.register(listWorkflowsTool);
+    this.register(runWorkflowTool);
   }
 
   /**

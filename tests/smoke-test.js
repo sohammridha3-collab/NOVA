@@ -214,12 +214,14 @@ async function runSmokeTests() {
   await wait(800);
 
   await evaluate(ws, `
-    const drawer = document.querySelector('#conversationDrawer');
-    if (drawer && !drawer.classList.contains('open')) {
-      const btn = document.querySelector('#btnExpandDrawer');
-      if (btn) btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-      drawer.classList.add('open');
-    }
+    (() => {
+      const drawer = document.querySelector('#conversationDrawer');
+      if (drawer && !drawer.classList.contains('open')) {
+        const btn = document.querySelector('#btnExpandDrawer');
+        if (btn) btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        drawer.classList.add('open');
+      }
+    })();
   `);
 
   const drawerState = await evaluate(ws, `
@@ -236,10 +238,12 @@ async function runSmokeTests() {
 
   // Minimize drawer back
   await evaluate(ws, `
-    const btnClose = document.querySelector('#btnCloseDrawer');
-    if (btnClose) btnClose.click();
-    const drawer = document.querySelector('#conversationDrawer');
-    if (drawer) drawer.classList.remove('open');
+    (() => {
+      const btnClose = document.querySelector('#btnCloseDrawer');
+      if (btnClose) btnClose.click();
+      const d = document.querySelector('#conversationDrawer');
+      if (d) d.classList.remove('open');
+    })();
   `);
   await wait(400);
 
@@ -267,6 +271,14 @@ async function runSmokeTests() {
   if (!devicesVisible) throw new Error('FAILED: Could not switch to devices view');
   await captureScreenshot(ws, 'holographic-devices.png');
   console.log('✓ PASS: Devices connector view responsive and captured.');
+
+  await evaluate(ws, `window.location.hash = '#knowledge';`);
+  await wait(800);
+  const knowledgeVisible = await evaluate(ws, `document.querySelector('#viewKnowledge').classList.contains('active')`);
+  console.log(`Knowledge view active: ${knowledgeVisible}`);
+  if (!knowledgeVisible) throw new Error('FAILED: Could not switch to knowledge view');
+  await captureScreenshot(ws, 'holographic-knowledge.png');
+  console.log('✓ PASS: Knowledge & Workflows view responsive and captured.');
 
   console.log('\n[TEST 6] Testing Mobile Viewport Adaptation:');
   await sendCdpCommand(ws, 'Emulation.setDeviceMetricsOverride', {
