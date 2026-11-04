@@ -15,7 +15,8 @@
     "backend:dev": "npm run dev --prefix backend",
     "backend:migrate": "npm run db:migrate --prefix backend",
     "backend:test": "npm run test:all --prefix backend",
-    "test:all": "npm run agent:test && npm run test:all --prefix backend && npm run test:smoke"
+    "test:all": "npm run agent:test && npm run test:all --prefix backend && npm run test:smoke",
+    "start": "node scripts/start-local.mjs"
   },
   "dependencies": {
     "three": "^0.170.0"
@@ -24,4 +25,3 @@
     "vite": "^6.0.0"
   }
 }
-
