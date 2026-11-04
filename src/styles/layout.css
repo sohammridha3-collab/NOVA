@@ -1,0 +1,569 @@
+/* ==========================================================================
+   NOVA — Editorial Command Studio Layout
+   Asymmetrical Observatory Composition with Quiet Bottom Strip
+   ========================================================================== */
+
+#app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  background-color: var(--bg-space);
+}
+
+/* --------------------------------------------------------------------------
+   Top Minimalist Header
+   -------------------------------------------------------------------------- */
+.app-header {
+  height: var(--header-height);
+  background: var(--bg-glass-heavy);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.brand-logo-wrap {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-logo-artifact {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #334155 0%, #0f172a 100%);
+  border: 1px solid var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+  transform: rotate(45deg);
+  position: relative;
+}
+
+.brand-logo-artifact::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: #00f0ff;
+  box-shadow: 0 0 6px #00f0ff;
+}
+
+.brand-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.22em;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.1;
+}
+
+.brand-title span.badge-version {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+}
+
+.brand-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+
+/* Header Center: Connection Status Pill */
+.header-center {
+  display: flex;
+  align-items: center;
+}
+
+.demo-banner-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: var(--accent-amber-light);
+  padding: 0.28rem 0.8rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.demo-banner-pill:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.demo-beacon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+  box-shadow: 0 0 8px var(--accent-amber);
+  animation: pulse-beacon 2s ease-in-out infinite;
+}
+
+@keyframes pulse-beacon {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Header Right Actions */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.icon-btn:hover {
+  color: var(--text-primary);
+  background: rgba(0, 240, 255, 0.08);
+  border-color: var(--border-subtle);
+}
+
+.icon-btn.active {
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--border-strong);
+}
+
+.icon-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.btn-reduce-effects {
+  height: 32px;
+  padding: 0 0.65rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  gap: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-reduce-effects:hover {
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+.mobile-menu-btn {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   App Main Body (Slim Dock + Main Workspace + Telemetry Drawer)
+   -------------------------------------------------------------------------- */
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Slim Vertical Navigation Dock */
+.app-sidebar {
+  width: var(--sidebar-width-dock);
+  background: var(--bg-glass-heavy);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid var(--border-hairline);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem 0;
+  z-index: 40;
+  flex-shrink: 0;
+  user-select: none;
+  align-items: center;
+}
+
+.sidebar-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  align-items: center;
+}
+
+.nav-item {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+  background: rgba(0, 240, 255, 0.06);
+  border-color: var(--border-subtle);
+}
+
+.nav-item.active {
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.15);
+}
+
+/* Fine illuminated active edge indicator */
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  bottom: 8px;
+  width: 2.5px;
+  background: var(--accent-cyan);
+  border-radius: 2px;
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+.nav-item .nav-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-item .nav-label,
+.nav-item .nav-badge,
+.sidebar-collapse-btn .collapse-text {
+  display: none !important;
+}
+
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Main Workspace Container
+   -------------------------------------------------------------------------- */
+.main-workspace {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-view {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: none;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-view.active {
+  display: flex;
+}
+
+/* --------------------------------------------------------------------------
+   Asymmetrical Desktop Composition (Assistant View)
+   Left: 3D Living Intelligence (45%) | Right: Conversation Studio (55%)
+   -------------------------------------------------------------------------- */
+.assistant-asymmetric-grid {
+  display: grid;
+  grid-template-columns: 45% 55%;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Left Column: 3D Sculpture Stage */
+.observatory-stage-col {
+  position: relative;
+  height: 100%;
+  background: radial-gradient(circle at 45% 50%, rgba(14, 25, 48, 0.5) 0%, rgba(4, 7, 20, 0.98) 78%);
+  border-right: 1px solid var(--border-hairline);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.neural-stage-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+}
+
+.neural-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  cursor: grab;
+  outline: none;
+}
+
+.neural-canvas:active {
+  cursor: grabbing;
+}
+
+/* Right Column: Conversation Studio */
+.conversation-studio-col {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Quiet Bottom Status Strip
+   -------------------------------------------------------------------------- */
+.observatory-bottom-strip {
+  height: var(--bottom-strip-height);
+  background: var(--bg-glass-heavy);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  z-index: 25;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.strip-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.strip-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent-cyan);
+}
+
+.strip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
+}
+
+.strip-center {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 520px;
+}
+
+.strip-ticker-msg {
+  color: var(--text-secondary);
+}
+
+.strip-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.strip-btn {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  gap: 0.35rem;
+  background: none;
+  border: none;
+}
+
+.strip-btn:hover {
+  color: var(--accent-cyan);
+}
+
+/* --------------------------------------------------------------------------
+   Collapsible Telemetry Drawer (Right Panel)
+   -------------------------------------------------------------------------- */
+.right-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 320px;
+  background: var(--bg-glass-heavy);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid var(--border-hairline);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.75);
+  z-index: 45;
+  transform: translateX(100%);
+  transition: transform var(--transition-smooth);
+}
+
+.right-panel.open {
+  transform: translateX(0);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Mobile & Tablet Adaptation
+   -------------------------------------------------------------------------- */
+@media (max-width: 960px) {
+  .assistant-asymmetric-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 230px 1fr;
+    height: 100%;
+  }
+
+  .observatory-stage-col {
+    border-right: none;
+    border-bottom: 1px solid var(--border-hairline);
+    height: 230px;
+  }
+
+  .conversation-studio-col {
+    height: 100%;
+  }
+
+  .strip-center {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .brand-subtitle,
+  .demo-banner-pill span.demo-text-long,
+  .btn-reduce-effects span {
+    display: none;
+  }
+
+  /* Bottom Dock on Mobile */
+  .app-sidebar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    height: 58px;
+    border-right: none;
+    border-top: 1px solid var(--border-hairline);
+    flex-direction: row;
+    align-items: center;
+    padding: 0 0.5rem;
+    z-index: 60;
+  }
+
+  .sidebar-nav-group {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .nav-item.active::before {
+    display: none;
+  }
+
+  .app-body {
+    padding-bottom: 58px;
+  }
+
+  .observatory-bottom-strip {
+    display: none;
+  }
+
+  .assistant-asymmetric-grid {
+    height: 100%;
+    grid-template-rows: 200px 1fr;
+  }
+
+  .observatory-stage-col {
+    height: 200px;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex;
+  }
+}

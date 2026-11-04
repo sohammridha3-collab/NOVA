@@ -1,0 +1,97 @@
+/* ==========================================================================
+   NOVA — Editorial Command Studio Design System
+   Obsidian, Silver, Electric Cyan & Warm Amber Accent
+   ========================================================================== */
+
+:root {
+  /* Color Palette — Deep Obsidian & Graphite Surfaces */
+  --bg-space: #050811;
+  --bg-primary: #070b16;
+  --bg-secondary: #0b1120;
+  --bg-surface: #101828;
+  --bg-surface-elevated: #152238;
+  --bg-surface-glass: rgba(11, 17, 32, 0.72);
+  --bg-glass-heavy: rgba(6, 9, 18, 0.88);
+  --bg-glass-card: rgba(16, 24, 40, 0.65);
+  --bg-glass-input: rgba(8, 13, 24, 0.85);
+
+  /* Hairline Borders & High-Precision Separators */
+  --border-subtle: rgba(56, 189, 248, 0.12);
+  --border-medium: rgba(56, 189, 248, 0.22);
+  --border-strong: rgba(56, 189, 248, 0.45);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-hairline: rgba(255, 255, 255, 0.06);
+
+  /* Primary Light — Electric Cyan & Silver */
+  --accent-cyan: #00f0ff;
+  --accent-cyan-bright: #38bdf8;
+  --accent-ice: #7dd3fc;
+  --accent-silver: #e2e8f0;
+  --accent-glow: rgba(0, 240, 255, 0.3);
+  --accent-glow-subtle: rgba(0, 240, 255, 0.12);
+
+  /* Warm Amber Accent (The Nova Artifact Signature Conduit) */
+  --accent-amber: #f59e0b;
+  --accent-amber-light: #fbbf24;
+  --accent-amber-glow: rgba(245, 158, 11, 0.28);
+
+  /* Restrained Secondary Accent */
+  --accent-violet: #818cf8;
+  --accent-violet-light: #c084fc;
+
+  /* State Indicators */
+  --status-idle: #00f0ff;
+  --status-listening: #10b981;
+  --status-thinking: #a855f7;
+  --status-speaking: #00f0ff;
+  --status-warning: #f59e0b;
+  --status-error: #f43f5e;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+
+  /* Text Contrast Hierarchy */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-dim: #475569;
+  --text-cyan: #00f0ff;
+  --text-amber: #fbbf24;
+
+  /* Precision Radii & Spacing */
+  --header-height: 56px;
+  --bottom-strip-height: 38px;
+  --sidebar-width-dock: 64px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 9999px;
+
+  /* Shadows & Depth */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.75);
+
+  /* Micro Transitions */
+  --transition-fast: 140ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Theme Variant Accents */
+[data-theme-accent="violet"] {
+  --accent-cyan: #c084fc;
+  --accent-ice: #e879f9;
+  --accent-glow: rgba(192, 132, 252, 0.35);
+  --status-idle: #c084fc;
+}
+
+[data-theme-accent="emerald"] {
+  --accent-cyan: #34d399;
+  --accent-ice: #6ee7b7;
+  --accent-glow: rgba(52, 211, 153, 0.35);
+  --status-idle: #34d399;
+}

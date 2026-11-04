@@ -1,0 +1,206 @@
+/* ==========================================================================
+   NOVA — 3D Artifact Digital Observatory & HUD Overlay
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   HUD Telemetry Overlays
+   -------------------------------------------------------------------------- */
+.core-hud-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.25rem;
+  z-index: 10;
+}
+
+.hud-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: auto;
+}
+
+/* Minimal Floating State Pill */
+.core-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(6, 9, 18, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-medium);
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.core-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-idle);
+  box-shadow: 0 0 8px var(--status-idle);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.core-status-text {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+/* Dynamic State Colors */
+.core-status-pill[data-state="idle"] .core-status-dot {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+.core-status-pill[data-state="listening"] .core-status-dot {
+  background: var(--status-listening);
+  box-shadow: 0 0 10px var(--status-listening);
+  animation: pulse-rapid 1s infinite alternate;
+}
+.core-status-pill[data-state="thinking"] .core-status-dot {
+  background: var(--status-thinking);
+  box-shadow: 0 0 10px var(--status-thinking);
+  animation: pulse-rapid 0.6s infinite alternate;
+}
+.core-status-pill[data-state="speaking"] .core-status-dot {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 12px var(--accent-cyan);
+  animation: pulse-rapid 0.45s infinite alternate;
+}
+
+@keyframes pulse-rapid {
+  from { transform: scale(0.85); opacity: 0.5; }
+  to { transform: scale(1.25); opacity: 1; }
+}
+
+/* Audio Waveform Bars */
+.core-audio-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 12px;
+}
+
+.audio-bar {
+  width: 2px;
+  height: 2px;
+  background: var(--accent-cyan);
+  border-radius: 1px;
+  transition: height 0.15s ease;
+}
+
+.core-status-pill[data-state="listening"] .audio-bar,
+.core-status-pill[data-state="speaking"] .audio-bar {
+  animation: wave-bar 0.8s ease-in-out infinite alternate;
+}
+
+.audio-bar:nth-child(1) { animation-delay: 0.0s; }
+.audio-bar:nth-child(2) { animation-delay: 0.2s; }
+.audio-bar:nth-child(3) { animation-delay: 0.4s; }
+.audio-bar:nth-child(4) { animation-delay: 0.1s; }
+.audio-bar:nth-child(5) { animation-delay: 0.3s; }
+
+@keyframes wave-bar {
+  0% { height: 2px; }
+  100% { height: 12px; }
+}
+
+/* Stage Quick Tools */
+.hud-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hud-tool-btn {
+  background: rgba(6, 9, 18, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  gap: 0.35rem;
+  letter-spacing: 0.04em;
+}
+
+.hud-tool-btn:hover {
+  color: var(--text-primary);
+  background: rgba(0, 240, 255, 0.08);
+  border-color: var(--border-subtle);
+}
+
+/* HUD Bottom Observatory Readout */
+.hud-bottom-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--text-muted);
+}
+
+.hud-telemetry-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hud-hint {
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 600px) {
+  .hud-bottom-row {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Hardware-Accelerated Fallback Core (SVG)
+   -------------------------------------------------------------------------- */
+.core-fallback-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #0f172a 0%, #050811 100%);
+  z-index: 5;
+}
+
+.fallback-svg-living,
+.fallback-svg-artifact {
+  width: 230px;
+  height: 230px;
+  animation: artifact-float 8s ease-in-out infinite alternate;
+}
+
+@keyframes artifact-float {
+  from { transform: translateY(-4px) rotate(0deg); }
+  to { transform: translateY(6px) rotate(2deg); }
+}
+
+.fallback-notice {
+  margin-top: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.06);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
