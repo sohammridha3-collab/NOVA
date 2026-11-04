@@ -34,12 +34,14 @@ const server = app.listen(config.port, process.env.HOST || '127.0.0.1', async ()
   const aiStatus = modelAdapter.getStatus();
   console.log(`🤖 AI Provider: ${aiStatus.provider.toUpperCase()} (${aiStatus.modelName}) - Status: ${aiStatus.status}`);
 
-  // Reconcile overdue reminders on startup
+  // Reconcile overdue reminders on startup and start scheduler
   try {
     const recResult = await ReminderService.reconcileOverdueReminders();
     if (recResult.reconciledCount > 0) {
       console.log(`⏱️ Reminder Reconciliation: ${recResult.reconciledCount} overdue reminder(s) updated.`);
     }
+    ReminderService.startScheduler();
+    console.log(`🔔 Reminder Scheduler: Active (5s evaluation heartbeat)`);
   } catch (err) {
     console.warn(`⚠️ Reminder reconciliation warning: ${err.message}`);
   }

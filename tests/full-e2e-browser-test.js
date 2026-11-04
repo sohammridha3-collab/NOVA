@@ -209,7 +209,7 @@ async function runAcceptanceSuite() {
         // Wait for response
         for (let i = 0; i < 40; i++) {
           await new Promise(r => setTimeout(r, 200));
-          const messages = document.querySelectorAll('.message-item.assistant .message-text');
+          const messages = document.querySelectorAll('.message-row.assistant .message-bubble, .message-item.assistant .message-text');
           if (messages.length > 0) {
             const lastMsg = messages[messages.length - 1].innerText;
             if (lastMsg && (lastMsg.includes(':') || lastMsg.includes('Current time'))) {
@@ -241,7 +241,7 @@ async function runAcceptanceSuite() {
         // Wait for second assistant response
         for (let i = 0; i < 50; i++) {
           await new Promise(r => setTimeout(r, 200));
-          const messages = document.querySelectorAll('.message-item.assistant .message-text');
+          const messages = document.querySelectorAll('.message-row.assistant .message-bubble, .message-item.assistant .message-text');
           if (messages.length >= 2) {
             const lastMsg = messages[messages.length - 1].innerText;
             if (lastMsg && (lastMsg.includes('Telemetry') || lastMsg.includes('CPU') || lastMsg.includes('RAM') || lastMsg.includes('Windows'))) {
@@ -275,7 +275,7 @@ async function runAcceptanceSuite() {
 
         for (let i = 0; i < 50; i++) {
           await new Promise(r => setTimeout(r, 200));
-          const messages = document.querySelectorAll('.message-item.assistant .message-text');
+          const messages = document.querySelectorAll('.message-row.assistant .message-bubble, .message-item.assistant .message-text');
           if (messages.length >= 3) {
             const lastMsg = messages[messages.length - 1].innerText;
             if (lastMsg && (lastMsg.includes('Promise') || lastMsg.includes('Pending') || lastMsg.includes('Fulfilled'))) {
@@ -304,7 +304,7 @@ async function runAcceptanceSuite() {
 
         for (let i = 0; i < 50; i++) {
           await new Promise(r => setTimeout(r, 200));
-          const messages = document.querySelectorAll('.message-item.assistant .message-text');
+          const messages = document.querySelectorAll('.message-row.assistant .message-bubble, .message-item.assistant .message-text');
           if (messages.length >= 4) {
             const lastMsg = messages[messages.length - 1].innerText;
             if (lastMsg && (lastMsg.includes('notepad') || lastMsg.includes('PID') || lastMsg.includes('Launched'))) {
@@ -333,7 +333,7 @@ async function runAcceptanceSuite() {
 
         for (let i = 0; i < 50; i++) {
           await new Promise(r => setTimeout(r, 200));
-          const messages = document.querySelectorAll('.message-item.assistant .message-text');
+          const messages = document.querySelectorAll('.message-row.assistant .message-bubble, .message-item.assistant .message-text');
           if (messages.length >= 5) {
             const lastMsg = messages[messages.length - 1].innerText;
             if (lastMsg && (lastMsg.includes('workspace') || lastMsg.includes('file(s)'))) {
@@ -362,7 +362,7 @@ async function runAcceptanceSuite() {
 
         for (let i = 0; i < 50; i++) {
           await new Promise(r => setTimeout(r, 200));
-          const messages = document.querySelectorAll('.message-item.assistant .message-text');
+          const messages = document.querySelectorAll('.message-row.assistant .message-bubble, .message-item.assistant .message-text');
           if (messages.length >= 6) {
             const lastMsg = messages[messages.length - 1].innerText;
             if (lastMsg && (lastMsg.includes('Preference saved') || lastMsg.includes('themeAccent'))) {

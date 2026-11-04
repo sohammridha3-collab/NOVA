@@ -555,14 +555,14 @@ export class ModelAdapter {
       actions.push(action);
       textContent = action.status === 'succeeded'
         ? `Launched pre-configured application "${appName}" on Windows host (PID ${action.result?.pid}).`
-        : `Failed to launch application "${appName}": ${action.errorMessage || 'Unknown error'}.`;
+        : `Failed to launch application "${appName}": ${action.errorMessage || 'Unknown error'}. Recovery: Ensure local automation agent is running (npm run agent:start) on port 3002.`;
     }
 
     // 3. Task: Search and open files in approved folders ("Find my project report", "Search workspace files")
-    else if ((lower.startsWith('find ') || lower.startsWith('search ') || lower.startsWith('locate ') || lower.includes('project report') || lower.includes('workspace file')) && !lower.includes('note') && !lower.includes('memori') && !lower.includes('preference')) {
+    else if (!lower.startsWith('delete') && !lower.startsWith('open') && !lower.startsWith('create') && (lower.includes('workspace file') || lower.includes('workspace files') || ((lower.startsWith('find ') || lower.startsWith('search ') || lower.startsWith('locate ') || lower.includes('project report')) && !lower.includes('note') && !lower.includes('memori') && !lower.includes('preference')))) {
       let query = p
         .replace(/^(?:find|search|locate)\s*(?:my|the|for)?\s*/i, '')
-        .replace(/(?:in\s+approved\s+folders?|in\s+workspace)?/i, '')
+        .replace(/(?:in\s+approved\s+folders?|in\s+workspace|workspace\s+files?\s*(?:for)?)/i, '')
         .replace(/[.!?]+$/, '')
         .trim();
       if (!query || query.toLowerCase() === 'file' || query.toLowerCase() === 'files') {
@@ -575,13 +575,17 @@ export class ModelAdapter {
         args: { query }
       });
       actions.push(action);
-      const total = action.result?.totalFound || 0;
-      const files = action.result?.candidates || action.result?.files || [];
-      if (total > 0) {
-        textContent = `Found ${total} file(s) matching "${query}" in approved workspace:\n` +
-          files.map(f => `• **${f.name}** (${f.relativePath} - ${f.sizeBytes} bytes)`).join('\n');
+      if (action.status === 'succeeded') {
+        const total = action.result?.totalFound || 0;
+        const files = action.result?.candidates || action.result?.files || [];
+        if (total > 0) {
+          textContent = `Found ${total} file(s) matching "${query}" in approved workspace:\n` +
+            files.map(f => `• **${f.name}** (${f.relativePath} - ${f.sizeBytes} bytes)`).join('\n');
+        } else {
+          textContent = `Searched approved workspace for "${query}": found 0 matching files.`;
+        }
       } else {
-        textContent = `Searched approved workspace for "${query}": found 0 matching files.`;
+        textContent = `Workspace file search failed: ${action.errorMessage || 'Agent offline'}. Recovery: Ensure local automation agent is running on port 3002.`;
       }
     }
     else if ((lower.startsWith('open file') || lower.startsWith('open workspace file') || lower.includes('open test file')) && !lower.includes('notepad') && !lower.includes('calc') && !lower.includes('explorer') && !lower.includes('paint') && !lower.includes('edge')) {
@@ -599,7 +603,7 @@ export class ModelAdapter {
       actions.push(action);
       textContent = action.status === 'succeeded'
         ? `Opened workspace file "${targetFile}" in default system viewer.`
-        : `Could not open workspace file: ${action.errorMessage}`;
+        : `Could not open workspace file: ${action.errorMessage || 'File error'}. Recovery: Verify file exists in approved workspace.`;
     }
     else if (lower.startsWith('create workspace note') || lower.startsWith('workspace note:')) {
       const match = p.match(/(?:create workspace note|workspace note)\s*[:\-]?\s*([^|\n:]+)(?:[|\n:]([\s\S]+))?/i);
@@ -614,7 +618,7 @@ export class ModelAdapter {
       actions.push(action);
       textContent = action.status === 'succeeded'
         ? `Workspace note "${filename}" saved at ${action.result?.relativePath}.`
-        : `Could not save workspace note: ${action.errorMessage}`;
+        : `Could not save workspace note: ${action.errorMessage || 'Workspace error'}. Recovery: Ensure local automation agent is running.`;
     }
     else if (lower.startsWith('delete workspace file') || lower.startsWith('delete file')) {
       const match = p.match(/(?:delete workspace file|delete file)\s*[:\-]?\s*([^\s]+)/i);
@@ -643,7 +647,7 @@ export class ModelAdapter {
         actions.push(action);
         textContent = action.status === 'succeeded'
           ? `Opened URL ${url} in default system browser.`
-          : `Failed to open URL: ${action.errorMessage}`;
+          : `Failed to open URL: ${action.errorMessage || 'Launch error'}. Recovery: Check URL formatting and agent status.`;
       }
     }
     else if (lower.includes('os info') || lower.includes('system info') || lower.includes('telemetry') || lower.includes('hardware spec') || lower.includes('system spec')) {
@@ -657,7 +661,7 @@ export class ModelAdapter {
         const r = action.result;
         textContent = `Host System Telemetry: ${r.osType} ${r.osRelease} (${r.architecture}) on ${r.hostname}. CPU: ${r.cpu?.model} (${r.cpu?.cores} cores). RAM: ${r.memory?.usedGb}GB / ${r.memory?.totalGb}GB (${r.memory?.usedPercentage}%). Uptime: ${r.uptimeFormatted}.`;
       } else {
-        textContent = `Queried host operating system telemetry. Status: ${action.status}.`;
+        textContent = `Failed to query host operating system telemetry: ${action.errorMessage || 'Agent offline'}. Recovery: Ensure local automation agent is running on port 3002.`;
       }
     }
 
@@ -677,7 +681,9 @@ export class ModelAdapter {
         }
       });
       actions.push(action);
-      textContent = `Note "${rawTitle}" has been saved successfully in persistent storage.`;
+      textContent = action.status === 'succeeded'
+        ? `Note "${rawTitle}" has been saved successfully in persistent storage.`
+        : `Failed to save note "${rawTitle}": ${action.errorMessage || 'Storage error'}. Recovery: Check backend database connectivity.`;
     }
     else if (lower.startsWith('search notes') || lower.startsWith('find note') || lower.includes('search note') || (lower.includes('note') && (lower.includes('find') || lower.includes('show') || lower.includes('list') || lower.includes('retrieve')))) {
       const cleanQ = p.replace(/^(?:search|find|show|list)\s+notes?\s*(?:for|about|with)?\s*/i, '').replace(/[.!?]+$/, '').trim();
@@ -688,8 +694,14 @@ export class ModelAdapter {
         args: { query }
       });
       actions.push(action);
-      const count = action.result?.totalFound || 0;
-      textContent = `Found ${count} note(s) matching query "${query}".`;
+      if (action.status === 'succeeded') {
+        const count = action.result?.totalFound || 0;
+        const notes = action.result?.notes || [];
+        textContent = `Found ${count} note(s) matching query "${query}".` +
+          (notes.length > 0 ? '\n' + notes.map(n => `• **${n.title}**: ${n.content}`).join('\n') : '');
+      } else {
+        textContent = `Search notes failed: ${action.errorMessage || 'Storage error'}. Recovery: Check backend storage status.`;
+      }
     }
     else if (lower.startsWith('delete note') || lower.startsWith('remove note')) {
       const idMatch = p.match(/(?:delete note|remove note)\s*[:\-]?\s*([a-zA-Z0-9\-]+)/i);
@@ -720,7 +732,9 @@ export class ModelAdapter {
         }
       });
       actions.push(action);
-      textContent = `Reminder scheduled: "${title}" due at ${action.result?.dueAt || dueAt}.`;
+      textContent = action.status === 'succeeded'
+        ? `Reminder scheduled: "${title}" due at ${action.result?.dueAt || dueAt}.`
+        : `Failed to schedule reminder: ${action.errorMessage || 'Storage error'}. Recovery: Check backend database connectivity.`;
     }
     else if (lower.includes('list reminder') || lower.includes('show reminder') || lower.includes('my reminder')) {
       const status = lower.includes('overdue') ? 'overdue' : lower.includes('all') ? 'all' : 'pending';
@@ -730,8 +744,12 @@ export class ModelAdapter {
         args: { status }
       });
       actions.push(action);
-      const total = action.result?.total || 0;
-      textContent = `Retrieved ${total} ${status} reminder(s).`;
+      if (action.status === 'succeeded') {
+        const total = action.result?.total || 0;
+        textContent = `Retrieved ${total} ${status} reminder(s).`;
+      } else {
+        textContent = `Failed to list reminders: ${action.errorMessage || 'Storage error'}. Recovery: Check backend service status.`;
+      }
     }
     else if (lower.startsWith('cancel reminder')) {
       const match = p.match(/cancel reminder\s*[:\-]?\s*([a-zA-Z0-9\-]+)/i);
@@ -755,7 +773,9 @@ export class ModelAdapter {
         args: { keyName: 'language_preference', valueText: fact, category: 'preference' }
       });
       actions.push(action);
-      textContent = `Explicit memory stored: "${fact}". I will keep this preference saved for future interactions.`;
+      textContent = action.status === 'succeeded'
+        ? `Explicit memory stored: "${fact}". I will keep this preference saved for future interactions.`
+        : `Failed to store memory: ${action.errorMessage || 'Storage error'}. Recovery: Check backend persistence.`;
     }
     else if (lower.startsWith('save preference') || lower.startsWith('set preference')) {
       const prefMatch = p.match(/(?:save|set)\s+preference\s*[:\-]?\s*([^:=]+)[:=]\s*(.+)/i);
@@ -768,7 +788,9 @@ export class ModelAdapter {
         args: { keyName: key, valueText: val, category: 'preference' }
       });
       actions.push(action);
-      textContent = `Preference saved: **${key}** = "${val}". Saved in persistent preferences.`;
+      textContent = action.status === 'succeeded'
+        ? `Preference saved: **${key}** = "${val}". Saved in persistent preferences.`
+        : `Failed to save preference: ${action.errorMessage || 'Storage error'}. Recovery: Check backend persistence.`;
     }
     else if (lower.includes('what do you remember') || lower.includes('search memories') || lower.includes('list memories') || lower.includes('my preference')) {
       const action = await ActionService.proposeAction({
@@ -1003,19 +1025,44 @@ ${topic} represents a foundational concept in computer science and software arch
       return baseContent || 'NOVA Core: Command processed.';
     }
 
+    const hasFailed = actions.some(a => a.status === 'failed');
+    const hasAwaiting = actions.some(a => a.status === 'awaiting_confirmation');
+    const hasCancelled = actions.some(a => a.status === 'cancelled');
+
+    let safeBaseContent = baseContent || '';
+
+    // If an action is not succeeded, strip any premature LLM claims of success from baseContent
+    if (hasFailed || hasAwaiting || hasCancelled) {
+      if (/I (have|'ve) (opened|launched|deleted|created|saved|executed|removed)/i.test(safeBaseContent) ||
+          /(successfully|has been (opened|launched|deleted|created|saved|executed))/i.test(safeBaseContent)) {
+        safeBaseContent = '';
+      }
+    }
+
     const segments = [];
-    if (baseContent && baseContent.trim().length > 0) {
-      segments.push(baseContent.trim());
+    if (safeBaseContent && safeBaseContent.trim().length > 0) {
+      segments.push(safeBaseContent.trim());
     }
 
     for (const act of actions) {
       if (act.status === 'awaiting_confirmation') {
         segments.push(`\n⚠️ **Action Required**: \`${act.toolName}\` requires operator confirmation before execution. Please confirm or cancel below.`);
       } else if (act.status === 'succeeded') {
-        // Result is ready
         segments.push(`\n✅ \`${act.toolName}\` executed successfully.`);
       } else if (act.status === 'failed') {
-        segments.push(`\n❌ \`${act.toolName}\` execution failed: ${act.errorMessage}`);
+        let recovery = 'Check system logs and verify service readiness.';
+        if (act.toolName?.startsWith('android')) {
+          recovery = 'Verify ADB is installed and your Android device is connected with USB debugging authorized.';
+        } else if (act.toolName?.startsWith('hass')) {
+          recovery = 'Verify HASS_BASE_URL and HASS_TOKEN in backend/.env, and check entity availability.';
+        } else if (['openConfiguredApp', 'searchWorkspaceFiles', 'openWorkspaceFile', 'createWorkspaceNote', 'deleteWorkspaceFile', 'getOperatingSystemInfo'].includes(act.toolName)) {
+          recovery = 'Ensure the local automation agent is running ("npm run agent:start" on port 3002).';
+        } else if (['saveNote', 'searchNotes', 'deleteNote', 'createReminder', 'listReminders', 'savePersonalMemory', 'deletePersonalMemory'].includes(act.toolName)) {
+          recovery = 'Ensure the backend database service is operational.';
+        }
+        segments.push(`\n❌ \`${act.toolName}\` execution failed: ${act.errorMessage || 'Operation could not be completed'}.\n**Recovery**: ${recovery}`);
+      } else if (act.status === 'cancelled') {
+        segments.push(`\nAction \`${act.toolName}\` was cancelled by operator.`);
       }
     }
 

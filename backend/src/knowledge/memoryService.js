@@ -5,10 +5,44 @@
  */
 
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { query as dbQuery } from '../database/connection.js';
 
-// In-memory fallback map for offline / test environments
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DATA_DIR = path.resolve(__dirname, '../../data');
+const MEMORIES_FILE = path.join(DATA_DIR, 'memories.json');
+
+// In-memory fallback map with file persistence for offline / test environments
 const inMemoryMemories = new Map();
+
+function loadFallbackMemories() {
+  try {
+    if (fs.existsSync(MEMORIES_FILE)) {
+      const raw = fs.readFileSync(MEMORIES_FILE, 'utf8');
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        for (const m of arr) {
+          if (m && m.id) inMemoryMemories.set(m.id, m);
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+function saveFallbackMemories() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    const arr = Array.from(inMemoryMemories.values());
+    fs.writeFileSync(MEMORIES_FILE, JSON.stringify(arr, null, 2), 'utf8');
+  } catch (e) {}
+}
+
+loadFallbackMemories();
 
 /**
  * Validates memory fields
@@ -63,8 +97,9 @@ export async function createMemory(data) {
     inMemoryMemories.set(id, record);
   }
 
-  // Also maintain in-memory copy
+  // Also maintain in-memory copy and fallback disk persistence
   inMemoryMemories.set(id, record);
+  saveFallbackMemories();
 
   return record;
 }
@@ -175,6 +210,7 @@ export async function updateMemory(id, data = {}) {
   } catch (e) {}
 
   inMemoryMemories.set(id, record);
+  saveFallbackMemories();
 
   return record;
 }
@@ -196,6 +232,7 @@ export async function deleteMemory(id) {
   } catch (e) {}
 
   inMemoryMemories.delete(id);
+  saveFallbackMemories();
 
   return {
     deleted: true,

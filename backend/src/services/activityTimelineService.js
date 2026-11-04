@@ -8,6 +8,7 @@ import { query as dbQuery } from '../database/connection.js';
 import { listWorkflowRuns } from '../workflows/workflowEngine.js';
 import { listDocuments } from '../knowledge/documentService.js';
 import { listMemories } from '../knowledge/memoryService.js';
+import { ReminderService } from './reminderService.js';
 
 export async function getActivityTimeline(options = {}) {
   const { limit = 30 } = options;
@@ -99,6 +100,27 @@ export async function getActivityTimeline(options = {}) {
         },
         timestamp: mem.createdAt,
         isCancellable: false
+      });
+    }
+  } catch (e) {}
+
+  // 5. Fetch Reminders
+  try {
+    const reminders = await ReminderService.listReminders({ status: 'all', limit: 10 });
+    for (const rem of (reminders || [])) {
+      events.push({
+        id: `rem_${rem.id}`,
+        type: 'reminder',
+        title: `Reminder: ${rem.title}`,
+        status: rem.status,
+        summary: `Due: ${new Date(rem.dueAt).toLocaleTimeString()} • Priority: ${String(rem.priority).toUpperCase()}`,
+        details: {
+          reminderId: rem.id,
+          priority: rem.priority
+        },
+        timestamp: rem.createdAt || rem.dueAt,
+        isCancellable: rem.status === 'pending',
+        cancelEndpoint: `/api/reminders/${rem.id}`
       });
     }
   } catch (e) {}
