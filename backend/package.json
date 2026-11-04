@@ -1,0 +1,24 @@
+{
+  "name": "nova-backend",
+  "version": "1.0.0",
+  "description": "NOVA — Backend API Foundation (Express & MySQL)",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:migrate": "node src/database/migrate.js",
+    "test:api": "node tests/api.test.js",
+    "test:voice": "node tests/voice.test.js",
+    "test:automation": "node tests/automation.test.js",
+    "test:devices": "node tests/devices.test.js",
+    "test:all": "node tests/api.test.js && node tests/voice.test.js && node tests/automation.test.js && node tests/devices.test.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^2.5.0",
+    "mysql2": "^3.12.0"
+  }
+}

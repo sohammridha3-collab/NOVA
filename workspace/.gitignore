@@ -1,0 +1,5 @@
+# NOVA Workspace Gitignore
+# User-generated files and notes can stay local or be tracked
+temp/
+*.tmp
+

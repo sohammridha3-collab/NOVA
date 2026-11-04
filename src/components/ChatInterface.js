@@ -1,6 +1,7 @@
 /**
  * NOVA — Chat Interface Component: Holographic Command Centre
  * Manages transmission stream, markdown parsing, code copying,
+ * structured action cards (confirm/cancel destructive tasks),
  * latest response preview capsule, expandable conversation drawer,
  * and Web Speech STT/TTS coordination.
  */
@@ -48,7 +49,6 @@ export class ChatInterface {
   }
 
   _bindDomElements() {
-    // Look up elements from existing command centre layout
     this.scrollArea = document.getElementById('chatScrollArea');
     this.textarea = document.getElementById('composerTextarea');
     this.btnSend = document.getElementById('btnSend');
@@ -89,6 +89,10 @@ export class ChatInterface {
     // Auto-growing textarea
     if (this.textarea && this.btnSend) {
       this.textarea.addEventListener('input', () => {
+        // Cancel speech immediately when user interacts/types
+        if (speech.isSpeaking()) {
+          speech.stopSpeaking();
+        }
         this.textarea.style.height = 'auto';
         const newHeight = Math.min(this.textarea.scrollHeight, 100);
         this.textarea.style.height = `${newHeight}px`;
@@ -97,6 +101,9 @@ export class ChatInterface {
 
       // Enter to send, Shift+Enter for newline
       this.textarea.addEventListener('keydown', (e) => {
+        if (speech.isSpeaking()) {
+          speech.stopSpeaking();
+        }
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           if (!this.btnSend.disabled) {
@@ -121,15 +128,16 @@ export class ChatInterface {
       });
     }
 
-    // Microphone toggle button
+    // Push-to-Talk Microphone toggle button (Stage 3 VAD & faster-whisper)
     if (this.btnMic) {
-      this.btnMic.addEventListener('click', () => {
-        if (speech.isRecognizing) {
-          speech.stopListening();
+      this.btnMic.addEventListener('click', async () => {
+        if (speech.isRecording) {
+          await speech.stopRecording();
         } else {
-          const started = speech.startListening();
+          const started = await speech.startRecording();
           if (started) {
-            toast.info('Acoustic sensor active. Transmitting speech to command processor...');
+            const lang = speech.getLanguage().toUpperCase();
+            toast.info(`Push-to-Talk active (${lang}): Speak now (click mic again to transcribe)...`);
           }
         }
       });
@@ -145,10 +153,10 @@ export class ChatInterface {
       });
     }
 
-    // Global click delegate for code block copying & starter chips inside drawer
+    // Global click delegate inside conversation scroll area
     if (this.scrollArea) {
       this.scrollArea.addEventListener('click', (e) => {
-        // Copy code button
+        // 1. Copy code block
         const copyBtn = e.target.closest('.copy-code-btn');
         if (copyBtn) {
           const codeId = copyBtn.getAttribute('data-code-target');
@@ -168,7 +176,7 @@ export class ChatInterface {
           return;
         }
 
-        // Read aloud message
+        // 2. Read aloud message
         const readBtn = e.target.closest('.btn-speak-msg');
         if (readBtn) {
           const text = readBtn.getAttribute('data-text');
@@ -182,56 +190,90 @@ export class ChatInterface {
           }
           return;
         }
+
+        // 3. Confirm Action button
+        const confirmBtn = e.target.closest('.btn-action-confirm');
+        if (confirmBtn) {
+          const actionId = confirmBtn.getAttribute('data-action-id');
+          const token = confirmBtn.getAttribute('data-action-token');
+          this._handleConfirmAction(actionId, token, confirmBtn);
+          return;
+        }
+
+        // 4. Cancel Action button
+        const cancelBtn = e.target.closest('.btn-action-cancel');
+        if (cancelBtn) {
+          const actionId = cancelBtn.getAttribute('data-action-id');
+          this._handleCancelAction(actionId, cancelBtn);
+          return;
+        }
       });
     }
   }
 
   _setupSpeechHooks() {
-    // When browser is listening
-    speech.onListeningStateChange = (isListening) => {
-      if (isListening) {
-        if (this.btnMic) this.btnMic.classList.add('listening');
-        if (this.neuralCore) this.neuralCore.setState('listening');
-        this.onActivityLogged('Acoustic sensor active: Listening for speech input...');
-      } else {
-        if (this.btnMic) this.btnMic.classList.remove('listening');
-        if (this.neuralCore && this.neuralCore.state === 'listening') {
-          this.neuralCore.setState('idle');
-        }
+    // 1. Pipeline State Synchronization (idle, listening, transcribing, thinking, acting, speaking)
+    speech.onStateChange = (state) => {
+      if (this.neuralCore) {
+        this.neuralCore.setState(state);
+      }
+
+      if (this.btnMic) {
+        this.btnMic.classList.toggle('recording', state === 'listening');
+        this.btnMic.classList.toggle('transcribing', state === 'transcribing');
+      }
+
+      if (this.btnStopSpeech) {
+        this.btnStopSpeech.classList.toggle('active', state === 'speaking');
+      }
+
+      // Live HUD state tag & telemetry logging
+      const statusPill = document.getElementById('coreStatusPill');
+      if (statusPill) statusPill.setAttribute('data-state', state);
+
+      if (state === 'listening') {
+        this.onActivityLogged('Acoustic sensor active: Capturing audio buffer (VAD enabled)...');
+      } else if (state === 'transcribing') {
+        this.onActivityLogged('Faster-Whisper worker: Transcribing audio stream...');
+      } else if (state === 'thinking') {
+        this.onActivityLogged('Neural Core: Reasoning across context and tool matrix...');
+      } else if (state === 'acting') {
+        this.onActivityLogged('Structured Action: Executing authorized tool...');
+      } else if (state === 'speaking') {
+        this.onActivityLogged('Voice synthesis: Transmitting audio output...');
       }
     };
 
-    // Real-time transcript incoming
-    speech.onTranscript = (transcript, isFinal) => {
+    // 2. Transcription Decoded (Editable text preview — NEVER auto-submits)
+    speech.onTranscription = ({ text, language, confidence }) => {
       if (this.textarea) {
-        this.textarea.value = transcript;
+        this.textarea.value = text;
         this.textarea.style.height = 'auto';
         this.textarea.style.height = `${Math.min(this.textarea.scrollHeight, 100)}px`;
+        this.textarea.focus();
         if (this.btnSend) this.btnSend.disabled = !this.textarea.value.trim();
       }
 
-      if (isFinal) {
-        this.onActivityLogged(`Transcript decoded: "${transcript.slice(0, 30)}..."`);
+      if (this.previewText) {
+        this.previewText.textContent = text;
       }
+
+      const langCode = (language || 'auto').toUpperCase();
+      const confPct = Math.round((confidence || 0.8) * 100);
+      toast.success(`Decoded speech [${langCode} &bull; ${confPct}%]: "${text.slice(0, 36)}..."`);
+      this.onActivityLogged(`Transcript decoded [${langCode} &bull; ${confPct}%]: "${text.slice(0, 36)}..."`);
     };
 
-    // Speech synthesis state
-    speech.onSpeakingStateChange = (isSpeaking) => {
-      if (isSpeaking) {
-        if (this.btnStopSpeech) this.btnStopSpeech.classList.add('active');
-        if (this.neuralCore) this.neuralCore.setState('speaking');
-        this.onActivityLogged('Voice synthesis: Transmitting audio output...');
-      } else {
-        if (this.btnStopSpeech) this.btnStopSpeech.classList.remove('active');
-        if (this.neuralCore && this.neuralCore.state === 'speaking') {
-          this.neuralCore.setState('idle');
-        }
-      }
+    // 3. Silence / VAD Handling
+    speech.onSilenceDetected = (msg) => {
+      toast.info(msg);
+      this.onActivityLogged(`Voice sensor: ${msg}`);
     };
 
-    speech.onError = (errorMsg) => {
+    // 4. Error Recovery (Denied mic, unsupported audio, server offline)
+    speech.onError = (errorMsg, code) => {
       toast.warning(errorMsg);
-      this.onActivityLogged(`Acoustic event: ${errorMsg}`);
+      this.onActivityLogged(`Voice sensor event [${code || 'WARN'}]: ${errorMsg}`);
     };
   }
 
@@ -316,7 +358,7 @@ export class ChatInterface {
           // CONVERSATION STREAM INITIALIZED //
         </div>
         <p style="font-size: 0.88rem; max-width: 480px; margin: 0 auto; line-height: 1.5;">
-          No previous transmissions logged in this session. Dispatch a command from the central composer to begin technical architecture synthesis.
+          No previous transmissions logged in this session. Dispatch a command from the central composer to trigger AI reasoning, notes, reminders, or action workflows.
         </p>
       </div>
     `;
@@ -339,7 +381,7 @@ export class ChatInterface {
           <span>NOVA CORE</span>
           <span>&bull;</span>
           <span>${timeStr}</span>
-          ${msg.simulated ? '<span class="simulated-pill">SIMULATED &bull; LOCAL</span>' : ''}
+          ${msg.simulated ? '<span class="simulated-pill">SIMULATED &bull; LOCAL</span>' : '<span class="simulated-pill live-pill">LIVE &bull; STAGE 2</span>'}
         </div>
       `
       : `
@@ -352,7 +394,12 @@ export class ChatInterface {
 
     const contentHtml = isAssistant ? renderMarkdown(msg.content) : `<p>${this._escapeHtml(msg.content)}</p>`;
 
-    const actionsHtml = isAssistant
+    // Render structured action cards if present
+    const actionsCardsHtml = isAssistant && Array.isArray(msg.actions) && msg.actions.length > 0
+      ? this._renderActionCardsHtml(msg.actions)
+      : '';
+
+    const actionsToolbarHtml = isAssistant
       ? `
         <div class="message-actions-toolbar">
           <button class="action-mini-btn btn-speak-msg" data-text="${this._escapeHtml(msg.content)}" title="Read message aloud">
@@ -369,12 +416,282 @@ export class ChatInterface {
         ${metaHtml}
         <div class="message-bubble">
           ${contentHtml}
+          ${actionsCardsHtml}
         </div>
-        ${actionsHtml}
+        ${actionsToolbarHtml}
       </div>
     `;
 
     return row;
+  }
+
+  /**
+   * Render structured action cards for tool executions
+   */
+  _renderActionCardsHtml(actions) {
+    if (!actions || !Array.isArray(actions) || actions.length === 0) return '';
+    return `
+      <div class="action-cards-container">
+        ${actions.map(act => this._renderSingleActionCardHtml(act)).join('')}
+      </div>
+    `;
+  }
+
+  _renderSingleActionCardHtml(act) {
+    const isAwaiting = act.status === 'awaiting_confirmation';
+    const isSucceeded = act.status === 'succeeded';
+    const isFailed = act.status === 'failed';
+    const isCancelled = act.status === 'cancelled';
+
+    let badgeClass = 'status-cyan';
+    let statusLabel = act.status.toUpperCase();
+
+    if (isAwaiting) {
+      badgeClass = 'status-amber';
+      statusLabel = 'CONFIRMATION REQUIRED';
+    } else if (isSucceeded) {
+      badgeClass = 'status-green';
+      statusLabel = 'SUCCEEDED';
+    } else if (isFailed) {
+      badgeClass = 'status-red';
+      statusLabel = 'FAILED';
+    } else if (isCancelled) {
+      badgeClass = 'status-gray';
+      statusLabel = 'CANCELLED';
+    }
+
+    let paramsDisplay = '';
+    if (act.arguments && Object.keys(act.arguments).length > 0) {
+      paramsDisplay = `<div class="action-params-box">` +
+        Object.entries(act.arguments).map(([k, v]) => `
+          <div class="param-row">
+            <span class="param-key">${this._escapeHtml(k)}:</span>
+            <span class="param-val">${this._escapeHtml(typeof v === 'object' ? JSON.stringify(v) : String(v))}</span>
+          </div>
+        `).join('') +
+        `</div>`;
+    }
+
+    let resultDisplay = '';
+    if (isSucceeded && act.result) {
+      // Special rendering: Operating System Telemetry
+      if (act.toolName === 'getOperatingSystemInfo' && typeof act.result === 'object') {
+        const r = act.result;
+        resultDisplay = `
+          <div class="action-result-box">
+            <div class="result-header">HOST SYSTEM TELEMETRY (GENUINE OS MEASUREMENTS):</div>
+            <div class="os-telemetry-grid">
+              <div class="telemetry-tile">
+                <div class="telemetry-label">Host & Platform</div>
+                <div class="telemetry-val">${this._escapeHtml(r.hostname || 'Windows Host')} &bull; ${this._escapeHtml(r.platform || 'win32')}</div>
+              </div>
+              <div class="telemetry-tile">
+                <div class="telemetry-label">OS Version</div>
+                <div class="telemetry-val">${this._escapeHtml(r.osType || 'Windows_NT')} ${this._escapeHtml(r.osRelease || '')} (${this._escapeHtml(r.architecture || 'x64')})</div>
+              </div>
+              <div class="telemetry-tile">
+                <div class="telemetry-label">Processor Core</div>
+                <div class="telemetry-val">${this._escapeHtml(r.cpu?.model || 'CPU')} (${r.cpu?.cores || 1} cores)</div>
+              </div>
+              <div class="telemetry-tile">
+                <div class="telemetry-label">Memory Allocation</div>
+                <div class="telemetry-val">${r.memory?.usedGb || 0} GB / ${r.memory?.totalGb || 0} GB (${r.memory?.usedPercentage || 0}%)</div>
+              </div>
+              <div class="telemetry-tile">
+                <div class="telemetry-label">System Uptime</div>
+                <div class="telemetry-val">${this._escapeHtml(r.uptimeFormatted || `${r.uptimeSeconds || 0}s`)}</div>
+              </div>
+              <div class="telemetry-tile">
+                <div class="telemetry-label">Sensor Telemetry</div>
+                <div class="telemetry-val">${new Date(r.systemTime || Date.now()).toLocaleTimeString()}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      // Special rendering: Workspace File Search with Ambiguity Detection
+      else if (act.toolName === 'searchWorkspaceFiles' && Array.isArray(act.result.candidates)) {
+        const cands = act.result.candidates;
+        const isAmb = act.result.isAmbiguous;
+        resultDisplay = `
+          <div class="action-result-box">
+            <div class="result-header">WORKSPACE FILE SEARCH [${act.result.totalFound} FOUND]:</div>
+            ${isAmb ? '<div class="ambiguous-warning">⚠️ Multiple candidate files match. Specific relative path required:</div>' : ''}
+            <div class="action-candidates-list">
+              ${cands.map(c => `
+                <div class="candidate-item">
+                  <span class="candidate-path">📄 ${this._escapeHtml(c.relativePath || c.name)}</span>
+                  <span class="candidate-meta">${(c.sizeBytes / 1024).toFixed(1)} KB &bull; ${new Date(c.lastModified).toLocaleDateString()}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        resultDisplay = `
+          <div class="action-result-box">
+            <div class="result-header">TOOL EXECUTION RESULT:</div>
+            <pre class="result-pre">${this._escapeHtml(typeof act.result === 'object' ? JSON.stringify(act.result, null, 2) : String(act.result))}</pre>
+          </div>
+        `;
+      }
+    } else if (isFailed && act.errorMessage) {
+      resultDisplay = `
+        <div class="action-error-box">
+          <div class="result-header">EXECUTION FAILED:</div>
+          <div class="error-text">${this._escapeHtml(act.errorMessage)}</div>
+        </div>
+      `;
+    } else if (isCancelled) {
+      resultDisplay = `
+        <div class="action-cancelled-box">
+          <span>Action was cancelled by operator. No further changes applied.</span>
+        </div>
+      `;
+    }
+
+    // Cancellation notice explaining OS permanence
+    const isOsAction = [
+      'openConfiguredApp',
+      'searchWorkspaceFiles',
+      'openWorkspaceFile',
+      'createWorkspaceNote',
+      'deleteWorkspaceFile',
+      'openWebUrl',
+      'getOperatingSystemInfo'
+    ].includes(act.toolName);
+
+    const cancelNoticeHtml = `
+      <div class="action-cancellation-notice">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Cancellation may not undo completed operating-system actions.</span>
+      </div>
+    `;
+
+    let buttonsHtml = '';
+    if (isAwaiting) {
+      buttonsHtml = `
+        <div class="action-buttons-row">
+          <button class="btn-action-confirm" data-action-id="${act.id}" data-action-token="${act.confirmationToken || ''}">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+            Confirm Execution
+          </button>
+          <button class="btn-action-cancel" data-action-id="${act.id}">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            Cancel
+          </button>
+        </div>
+      `;
+    } else if (act.status === 'running') {
+      buttonsHtml = `
+        <div class="action-buttons-row">
+          <button class="btn-action-cancel" data-action-id="${act.id}">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            Cancel Action
+          </button>
+        </div>
+      `;
+    }
+
+    const logFooter = act.meta?.executionTimeMs ? `
+      <div class="action-log-footer">
+        <span>⏱️ ${act.meta.executionTimeMs}ms</span>
+        <span>&bull;</span>
+        <span>${new Date(act.meta.timestamp || act.updatedAt).toLocaleTimeString()}</span>
+      </div>
+    ` : '';
+
+    return `
+      <div class="action-card action-status-${act.status}" id="action-card-${act.id}" data-action-id="${act.id}">
+        <div class="action-card-header">
+          <div class="action-title-wrap">
+            <span class="action-icon">⚡</span>
+            <span class="action-tool-name">${this._escapeHtml(act.toolName)}</span>
+            ${act.requiresConfirmation ? '<span class="destructive-badge">DESTRUCTIVE</span>' : ''}
+            ${isOsAction ? '<span class="os-badge">OS AUTOMATION</span>' : ''}
+          </div>
+          <span class="action-status-badge ${badgeClass}">${statusLabel}</span>
+        </div>
+        ${paramsDisplay}
+        ${resultDisplay}
+        ${cancelNoticeHtml}
+        ${buttonsHtml}
+        ${logFooter}
+      </div>
+    `;
+  }
+
+  async _handleConfirmAction(actionId, token, buttonEl) {
+    if (!actionId || !token) {
+      toast.error('Missing confirmation credentials.');
+      return;
+    }
+
+    const card = document.getElementById(`action-card-${actionId}`);
+    if (buttonEl) buttonEl.disabled = true;
+
+    try {
+      if (this.neuralCore) this.neuralCore.setState('acting');
+      this.onActivityLogged(`Authorizing confirmed action ${actionId.slice(0, 8)}...`);
+      const updatedAction = await api.confirmAction(actionId, token);
+
+      toast.success(`Action '${updatedAction.toolName}' confirmed and executed successfully.`);
+      this.onActivityLogged(`Action '${updatedAction.toolName}' execution succeeded.`);
+
+      // Update message state
+      this._updateActionInMessages(actionId, updatedAction);
+
+      // Re-render this specific action card
+      if (card) {
+        const parent = card.parentNode;
+        const temp = document.createElement('div');
+        temp.innerHTML = this._renderSingleActionCardHtml(updatedAction);
+        parent.replaceChild(temp.firstElementChild, card);
+      }
+    } catch (err) {
+      toast.error(`Confirmation failed: ${err.message}`);
+      if (buttonEl) buttonEl.disabled = false;
+    } finally {
+      if (this.neuralCore) this.neuralCore.setState('idle');
+    }
+  }
+
+  async _handleCancelAction(actionId, buttonEl) {
+    if (!actionId) return;
+
+    const card = document.getElementById(`action-card-${actionId}`);
+    if (buttonEl) buttonEl.disabled = true;
+
+    try {
+      const updatedAction = await api.cancelAction(actionId, 'Operator cancelled from command dashboard');
+      toast.info(`Action '${updatedAction.toolName}' was cancelled.`);
+      this.onActivityLogged(`Action '${updatedAction.toolName}' cancelled by operator.`);
+
+      this._updateActionInMessages(actionId, updatedAction);
+
+      if (card) {
+        const parent = card.parentNode;
+        const temp = document.createElement('div');
+        temp.innerHTML = this._renderSingleActionCardHtml(updatedAction);
+        parent.replaceChild(temp.firstElementChild, card);
+      }
+    } catch (err) {
+      toast.error(`Cancel request failed: ${err.message}`);
+      if (buttonEl) buttonEl.disabled = false;
+    }
+  }
+
+  _updateActionInMessages(actionId, updatedAction) {
+    for (const msg of this.messages) {
+      if (Array.isArray(msg.actions)) {
+        const idx = msg.actions.findIndex(a => a.id === actionId);
+        if (idx !== -1) {
+          msg.actions[idx] = updatedAction;
+          break;
+        }
+      }
+    }
+    storage.updateSessionMessages(this.activeSessionId, this.messages);
   }
 
   _updatePreviewFromMessages() {
@@ -450,7 +767,7 @@ export class ChatInterface {
             <span>NOVA CORE</span>
             <span>&bull;</span>
             <span>${timeStr}</span>
-            <span class="simulated-pill">SIMULATED &bull; LOCAL</span>
+            <span class="simulated-pill">${api.isDemoMode ? 'SIMULATED &bull; LOCAL' : 'LIVE &bull; STAGE 2'}</span>
           </div>
           <div class="message-bubble">
             <div class="typing-indicator">
@@ -469,6 +786,7 @@ export class ChatInterface {
 
     api.sendMessageStream({
       prompt: text,
+      sessionId: this.activeSessionId,
       history: this.messages,
       onStartThinking: () => {
         if (this.neuralCore) this.neuralCore.setState('thinking');
@@ -490,11 +808,21 @@ export class ChatInterface {
           this.btnSend.disabled = !this.textarea.value.trim();
         }
 
+        const actionsCardsHtml = Array.isArray(finalMsg.actions) && finalMsg.actions.length > 0
+          ? this._renderActionCardsHtml(finalMsg.actions)
+          : '';
+
         if (bubble) {
-          bubble.innerHTML = renderMarkdown(finalMsg.content);
+          bubble.innerHTML = renderMarkdown(finalMsg.content) + actionsCardsHtml;
         }
 
         if (assistantRow) {
+          const pill = assistantRow.querySelector('.simulated-pill');
+          if (pill) {
+            pill.textContent = finalMsg.simulated ? 'SIMULATED • LOCAL' : 'LIVE • STAGE 2';
+            pill.className = finalMsg.simulated ? 'simulated-pill' : 'simulated-pill live-pill';
+          }
+
           const wrap = assistantRow.querySelector('.message-bubble-wrap');
           const actions = document.createElement('div');
           actions.className = 'message-actions-toolbar';
@@ -540,7 +868,7 @@ export class ChatInterface {
           bubble.innerHTML = `<p style="color: var(--status-error);">Error processing response: ${this._escapeHtml(err)}</p>`;
         }
         if (this.neuralCore) this.neuralCore.setState('idle');
-        toast.error('Simulation streaming failed.');
+        toast.error(`Execution error: ${err}`);
       }
     });
   }

@@ -14,10 +14,12 @@ import { FallbackCore } from './core/FallbackCore.js';
 import { ChatInterface } from './components/ChatInterface.js';
 import { WebsiteStudio } from './components/WebsiteStudio.js';
 import { HistoryView } from './components/HistoryView.js';
+import { DevicesView } from './components/DevicesView.js';
 import { SettingsModal } from './components/SettingsModal.js';
 import { Navigation } from './components/Navigation.js';
 import { speech } from './services/speech.js';
 import { storage } from './services/storage.js';
+import { api } from './services/apiAdapter.js';
 import { toast } from './components/Toast.js';
 
 class NovaApp {
@@ -26,6 +28,7 @@ class NovaApp {
     this.chat = null;
     this.studio = null;
     this.historyView = null;
+    this.devicesView = null;
     this.settingsModal = null;
     this.navigation = null;
     this.telemetryLogs = [];
@@ -120,7 +123,20 @@ class NovaApp {
       console.error('[NOVA] HistoryView initialization failed:', err);
     }
 
-    // 7. Initialize Settings Modal
+    // 7. Initialize Real Device Connectors View (Stage 5)
+    try {
+      const devicesContainer = document.getElementById('viewDevices');
+      if (devicesContainer) {
+        this.devicesView = new DevicesView({
+          container: devicesContainer,
+          onActivityLogged: logActivity
+        });
+      }
+    } catch (err) {
+      console.error('[NOVA] DevicesView initialization failed:', err);
+    }
+
+    // 8. Initialize Settings Modal
     try {
       this.settingsModal = new SettingsModal({
         neuralCore: null,
@@ -151,10 +167,10 @@ class NovaApp {
     this._setupHeaderControls();
     this._setupStageInteractivity();
 
-    // 10. Hash Routing Support (#assistant, #studio, #history, #settings)
+    // 10. Hash Routing Support (#assistant, #studio, #history, #devices, #settings)
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
-      if (['assistant', 'studio', 'history'].includes(hash)) {
+      if (['assistant', 'studio', 'history', 'devices'].includes(hash)) {
         if (this.navigation) this.navigation.setActiveView(hash);
       } else if (hash === 'settings') {
         this._openSettings();
@@ -162,7 +178,7 @@ class NovaApp {
     });
 
     const initialHash = window.location.hash.replace('#', '');
-    if (['assistant', 'studio', 'history'].includes(initialHash)) {
+    if (['assistant', 'studio', 'history', 'devices'].includes(initialHash)) {
       if (this.navigation) this.navigation.setActiveView(initialHash);
     } else if (initialHash === 'settings') {
       this._openSettings();
@@ -240,11 +256,46 @@ class NovaApp {
     // -------------------------------------------------------------
     // PANEL 2: ACOUSTIC SYNTHESIS
     // -------------------------------------------------------------
+    const selectLanguage = document.getElementById('selectVoiceLanguage');
+    const selectPersona = document.getElementById('selectVoicePersona');
     const sliderSpeechRate = document.getElementById('sliderSpeechRate');
     const valSpeechRate = document.getElementById('valSpeechRate');
-    const selectPersona = document.getElementById('selectVoicePersona');
     const btnTestVoice = document.getElementById('btnTestVoice');
     const btnPanelStop = document.getElementById('btnPanelStopSpeech');
+
+    if (selectLanguage) {
+      selectLanguage.value = speech.getLanguage();
+      selectLanguage.addEventListener('change', (e) => {
+        speech.setLanguage(e.target.value);
+        storage.saveSettings({ voiceLanguage: e.target.value });
+        toast.info(`Spoken language target set to: ${e.target.value.toUpperCase()}`);
+        logActivity(`Spoken language target set to: ${e.target.value.toUpperCase()}`);
+      });
+    }
+
+    const populateVoices = (voices) => {
+      if (!selectPersona || !voices || voices.length === 0) return;
+      const settings = storage.loadSettings();
+      selectPersona.innerHTML = '<option value="">NOVA Core (Default)</option>';
+      voices.forEach((v) => {
+        const opt = document.createElement('option');
+        opt.value = v.voiceURI;
+        opt.textContent = `${v.name} (${v.lang})`;
+        if (settings.voiceURI === v.voiceURI) opt.selected = true;
+        selectPersona.appendChild(opt);
+      });
+    };
+
+    populateVoices(speech.getVoices());
+    speech.onVoicesChanged = populateVoices;
+
+    if (selectPersona) {
+      selectPersona.addEventListener('change', (e) => {
+        storage.saveSettings({ voiceURI: e.target.value });
+        toast.info('Voice persona updated.');
+        logActivity('Audio persona changed');
+      });
+    }
 
     if (sliderSpeechRate && valSpeechRate) {
       sliderSpeechRate.addEventListener('input', (e) => {
@@ -278,10 +329,38 @@ class NovaApp {
     // -------------------------------------------------------------
     // PANEL 4: COMMAND MATRIX
     // -------------------------------------------------------------
+    const btnSysInfo = document.getElementById('btnMatrixSysInfo');
+    const btnWorkspace = document.getElementById('btnMatrixWorkspace');
     const btnStudio = document.getElementById('btnMatrixStudio');
     const btnHistory = document.getElementById('btnMatrixHistory');
     const btnSettings = document.getElementById('btnMatrixSettings');
     const btnClear = document.getElementById('btnMatrixClearSession');
+
+    if (btnSysInfo) {
+      btnSysInfo.addEventListener('click', () => {
+        const textarea = document.getElementById('composerTextarea');
+        if (textarea) {
+          textarea.value = 'system info';
+          const btnSend = document.getElementById('btnSend');
+          if (btnSend) btnSend.disabled = false;
+          const form = document.getElementById('composerForm');
+          if (form) form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+      });
+    }
+
+    if (btnWorkspace) {
+      btnWorkspace.addEventListener('click', () => {
+        const textarea = document.getElementById('composerTextarea');
+        if (textarea) {
+          textarea.value = 'search workspace files';
+          const btnSend = document.getElementById('btnSend');
+          if (btnSend) btnSend.disabled = false;
+          const form = document.getElementById('composerForm');
+          if (form) form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+      });
+    }
 
     if (btnStudio) {
       btnStudio.addEventListener('click', () => {
@@ -392,7 +471,8 @@ class NovaApp {
     const views = {
       assistant: document.getElementById('viewAssistant'),
       studio: document.getElementById('viewStudio'),
-      history: document.getElementById('viewHistory')
+      history: document.getElementById('viewHistory'),
+      devices: document.getElementById('viewDevices')
     };
 
     Object.keys(views).forEach((key) => {
@@ -407,6 +487,10 @@ class NovaApp {
 
     if (viewName === 'history' && this.historyView) {
       this.historyView.refresh();
+    }
+
+    if (viewName === 'devices' && this.devicesView) {
+      this.devicesView.refresh();
     }
 
     this._addTelemetryLog(`Navigated view: ${viewName.toUpperCase()}`);
@@ -469,14 +553,19 @@ class NovaApp {
       });
     }
 
-    // Demo Notice Modal
+    // Demo & Backend Notice Modal
     const btnDemoInfo = document.getElementById('btnDemoInfo');
     const demoModal = document.getElementById('demoNoticeModal');
     const btnCloseDemo = document.getElementById('btnCloseDemoModal');
     const btnDismissDemo = document.getElementById('btnDismissDemoModal');
+    const btnToggleOperatingMode = document.getElementById('btnToggleOperatingMode');
+    const btnCheckBackendHealth = document.getElementById('btnCheckBackendHealth');
 
     if (btnDemoInfo && demoModal) {
-      const openDemoModal = () => demoModal.classList.add('open');
+      const openDemoModal = () => {
+        demoModal.classList.add('open');
+        this._refreshBackendConnectionStatus();
+      };
       const closeDemoModal = () => demoModal.classList.remove('open');
 
       btnDemoInfo.addEventListener('click', openDemoModal);
@@ -485,6 +574,141 @@ class NovaApp {
       demoModal.addEventListener('click', (e) => {
         if (e.target === demoModal) closeDemoModal();
       });
+
+      if (btnToggleOperatingMode) {
+        btnToggleOperatingMode.addEventListener('click', () => {
+          api.setDemoMode(!api.isDemoMode);
+          this._refreshBackendConnectionStatus();
+          toast.info(api.isDemoMode ? 'Switched to Demo Mode (Local Simulator)' : 'Switched to Live Backend Mode');
+        });
+      }
+
+      if (btnCheckBackendHealth) {
+        btnCheckBackendHealth.addEventListener('click', async () => {
+          btnCheckBackendHealth.disabled = true;
+          await this._refreshBackendConnectionStatus();
+          btnCheckBackendHealth.disabled = false;
+          toast.info('Refreshed backend health probe.');
+        });
+      }
+    }
+
+    // Initial backend status probe
+    this._refreshBackendConnectionStatus();
+  }
+
+  async _refreshBackendConnectionStatus() {
+    const btnDemoInfo = document.getElementById('btnDemoInfo');
+    const serverStatusEl = document.getElementById('backendServerStatus');
+    const dbStatusEl = document.getElementById('backendDbStatus');
+    const modeLabelEl = document.getElementById('currentOperatingModeLabel');
+    const toggleBtnEl = document.getElementById('btnToggleOperatingMode');
+    const noticeBox = document.getElementById('backendSetupNoticeBox');
+    const noticeText = document.getElementById('backendSetupNoticeText');
+
+    const status = await api.checkBackendStatus();
+
+    // 1. Update Modal Details
+    if (serverStatusEl) {
+      if (status.status === 'connected') {
+        serverStatusEl.textContent = 'Online (Port 3001)';
+        serverStatusEl.style.color = '#10b981';
+      } else {
+        serverStatusEl.textContent = 'Offline (Connection Refused)';
+        serverStatusEl.style.color = '#ef4444';
+      }
+    }
+
+    if (dbStatusEl) {
+      if (status.ready) {
+        dbStatusEl.textContent = `Connected (${status.database || 'nova_db'})`;
+        dbStatusEl.style.color = '#10b981';
+      } else if (status.status === 'connected') {
+        dbStatusEl.textContent = 'Setup Needed (Check backend/.env)';
+        dbStatusEl.style.color = '#f59e0b';
+      } else {
+        dbStatusEl.textContent = 'Unavailable (Server Offline)';
+        dbStatusEl.style.color = '#64748b';
+      }
+    }
+
+    if (noticeBox && noticeText) {
+      if (!status.ready && status.setupGuide) {
+        noticeBox.style.display = 'block';
+        noticeText.textContent = `Setup Guidance: ${status.setupGuide}`;
+      } else {
+        noticeBox.style.display = 'none';
+      }
+    }
+
+    if (modeLabelEl) {
+      modeLabelEl.textContent = api.isDemoMode
+        ? 'Demo Mode (Local Simulated AI)'
+        : 'Live Backend Mode (Node.js/Express + MySQL)';
+      modeLabelEl.style.color = api.isDemoMode ? 'var(--accent-amber)' : 'var(--accent-cyan)';
+    }
+
+    if (toggleBtnEl) {
+      toggleBtnEl.textContent = api.isDemoMode
+        ? 'Switch to Live Backend'
+        : 'Switch to Demo Mode';
+    }
+
+    // 2. Update Header Connection Pill
+    if (btnDemoInfo) {
+      if (api.isDemoMode) {
+        btnDemoInfo.innerHTML = `
+          <span class="demo-beacon beacon-amber"></span>
+          <span class="demo-text-long">Demo mode &bull; AI backend not connected</span>
+          <span style="font-size: 0.65rem; opacity: 0.85;">[INFO]</span>
+        `;
+        btnDemoInfo.title = 'Running in simulated client demo mode. Click for backend status.';
+      } else if (status.ready) {
+        btnDemoInfo.innerHTML = `
+          <span class="demo-beacon beacon-emerald"></span>
+          <span class="demo-text-long">Live Backend &bull; MySQL Connected</span>
+          <span style="font-size: 0.65rem; opacity: 0.85;">[LIVE]</span>
+        `;
+        btnDemoInfo.title = `Connected to ${status.host || '127.0.0.1'}/${status.database || 'nova_db'}. Click for details.`;
+      } else if (status.status === 'connected') {
+        btnDemoInfo.innerHTML = `
+          <span class="demo-beacon beacon-amber"></span>
+          <span class="demo-text-long">Backend Online &bull; MySQL Setup Needed</span>
+          <span style="font-size: 0.65rem; opacity: 0.85;">[SETUP]</span>
+        `;
+        btnDemoInfo.title = 'Backend server is running, but MySQL connection is offline. Click for setup guide.';
+      } else {
+        btnDemoInfo.innerHTML = `
+          <span class="demo-beacon beacon-crimson"></span>
+          <span class="demo-text-long">Backend Offline &bull; Server Disconnected</span>
+          <span style="font-size: 0.65rem; opacity: 0.85;">[OFFLINE]</span>
+        `;
+        btnDemoInfo.title = 'Backend server is offline on http://localhost:3001. Click for instructions.';
+      }
+    }
+
+    // 3. Update Automation Agent Pill
+    await this._updateAutomationAgentStatus();
+  }
+
+  async _updateAutomationAgentStatus() {
+    const agentPill = document.getElementById('agentStatusIndicator');
+    if (!agentPill) return;
+
+    try {
+      const status = await api.getAutomationStatus();
+      if (status.online) {
+        agentPill.textContent = `AGENT: ONLINE [${(status.platform || 'WIN32').toUpperCase()}]`;
+        agentPill.className = 'panel-status-pill status-online';
+        agentPill.title = `Local Automation Agent connected on ${status.host || '127.0.0.1'}:${status.port || 3002}. Workspace: ${status.workspaceRoot || 'NOVA/workspace'}`;
+      } else {
+        agentPill.textContent = 'AGENT: OFFLINE';
+        agentPill.className = 'panel-status-pill status-offline';
+        agentPill.title = 'Local automation agent offline. Run "npm run agent:start" to enable desktop automation.';
+      }
+    } catch (e) {
+      agentPill.textContent = 'AGENT: OFFLINE';
+      agentPill.className = 'panel-status-pill status-offline';
     }
   }
 
@@ -542,12 +766,35 @@ class NovaApp {
         case 'listening':
           statusText.textContent = 'ACOUSTIC SENSORS • CAPTURING SPEECH';
           break;
+        case 'transcribing':
+          statusText.textContent = 'WHISPER WORKER • TRANSCRIBING AUDIO';
+          break;
         case 'thinking':
           statusText.textContent = 'NEURAL CORE • EXECUTING REACTION';
+          break;
+        case 'acting':
+          statusText.textContent = 'STRUCTURED ACTION • EXECUTING TOOL';
           break;
         case 'speaking':
           statusText.textContent = 'SYNTHESIS • TRANSMITTING WAVEFORM';
           break;
+      }
+
+      const voiceIndicator = document.getElementById('voiceStatusIndicator');
+      if (voiceIndicator) {
+        if (newState === 'listening') {
+          voiceIndicator.textContent = 'RECORDING';
+          voiceIndicator.style.color = '#ef4444';
+        } else if (newState === 'transcribing') {
+          voiceIndicator.textContent = 'TRANSCRIBING';
+          voiceIndicator.style.color = '#00f0ff';
+        } else if (newState === 'speaking') {
+          voiceIndicator.textContent = 'SPEAKING';
+          voiceIndicator.style.color = '#10b981';
+        } else {
+          voiceIndicator.textContent = 'READY';
+          voiceIndicator.style.color = 'var(--accent-cyan)';
+        }
       }
     };
   }

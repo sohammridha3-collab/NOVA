@@ -8,7 +8,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:smoke": "node tests/smoke-test.js"
+    "test:smoke": "node tests/smoke-test.js",
+    "agent:start": "node agent/src/server.js",
+    "agent:test": "node agent/tests/agent.test.js && node agent/tests/android.test.js",
+    "backend:start": "npm start --prefix backend",
+    "backend:dev": "npm run dev --prefix backend",
+    "backend:migrate": "npm run db:migrate --prefix backend",
+    "backend:test": "npm run test:all --prefix backend",
+    "test:all": "npm run agent:test && npm run test:all --prefix backend && npm run test:smoke"
   },
   "dependencies": {
     "three": "^0.170.0"

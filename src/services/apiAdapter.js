@@ -1,34 +1,292 @@
 /**
- * NOVA — Modular API Adapter Service
- * Handles AI request communication.
- * In this stage, it provides a high-fidelity local streaming simulator.
- * Cleanly designed to be replaced with a live Node.js/Express endpoint:
- *   fetch('/api/chat', { ... }) or EventSource('/api/chat/stream')
+ * NOVA — Modular API Adapter Service (Stage 2 AI & Structured Action Integration)
+ * Coordinates request communication with both:
+ * 1. High-fidelity client simulator (Demo Mode)
+ * 2. Real Node.js/Express + MySQL Backend API (Live Mode with AI & Tool Registry)
+ *
+ * Implements the standard JSON response contract:
+ * { success: true, data: { ... }, meta: { requestId, timestamp } }
  */
 
 import { getSimulatedResponse } from './mockData.js';
 
 export class ApiAdapter {
   constructor() {
-    this.isDemoMode = true;
-    this.backendEndpoint = '/api/chat'; // Placeholder for future Node.js/Express server
+    // Explicit demo mode option, persisted in localStorage
+    const savedDemo = localStorage.getItem('nova_demo_mode');
+    this.isDemoMode = savedDemo !== null ? savedDemo === 'true' : true;
+
+    this.apiBase = '/api';
+    this.apiKey = 'nova_dev_api_key_8f1c4e92';
+    this.authToken = localStorage.getItem('nova_auth_token') || null;
     this.activeStreamAbort = null;
+    this.lastBackendStatus = null;
+  }
+
+  setDemoMode(enabled) {
+    this.isDemoMode = Boolean(enabled);
+    localStorage.setItem('nova_demo_mode', String(this.isDemoMode));
+  }
+
+  setAuthToken(token) {
+    this.authToken = token;
+    if (token) {
+      localStorage.setItem('nova_auth_token', token);
+    } else {
+      localStorage.removeItem('nova_auth_token');
+    }
   }
 
   /**
-   * Send a user prompt and stream the assistant's reply chunk by chunk.
-   * 
-   * @param {Object} options
-   * @param {string} options.prompt - The user's input text
-   * @param {Array} options.history - Prior messages in current conversation
-   * @param {Function} options.onStartThinking - Triggered when processing starts
-   * @param {Function} options.onChunk - Called with (accumulatedText, newChunk) as chunks arrive
-   * @param {Function} options.onComplete - Called with the final response payload
-   * @param {Function} options.onError - Called if an error occurs
-   * @returns {Function} cancel - Function to abort the active stream
+   * Probes backend health, MySQL readiness, and AI Provider status.
+   * Returns structured diagnostic information.
+   */
+  async checkBackendStatus() {
+    try {
+      const res = await fetch(`${this.apiBase}/health/ready`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' }
+      });
+
+      const body = await res.json().catch(() => null);
+
+      if (res.status === 200 && body?.success) {
+        this.lastBackendStatus = {
+          status: 'connected',
+          ready: true,
+          db: 'connected',
+          host: body.data?.database?.host,
+          database: body.data?.database?.database,
+          message: 'Backend server and MySQL database are online and ready.'
+        };
+      } else if (res.status === 503 && body?.error?.code === 'DATABASE_NOT_READY') {
+        this.lastBackendStatus = {
+          status: 'connected',
+          ready: false,
+          db: 'disconnected',
+          message: body.error.message,
+          setupGuide: body.error.details?.setupGuide || 'Check database credentials in backend/.env.'
+        };
+      } else {
+        this.lastBackendStatus = {
+          status: 'connected',
+          ready: false,
+          db: 'error',
+          message: body?.error?.message || `Unexpected status code: ${res.status}`
+        };
+      }
+    } catch (err) {
+      this.lastBackendStatus = {
+        status: 'offline',
+        ready: false,
+        db: 'unknown',
+        message: 'Backend server is not reachable on http://localhost:3001. Please run "npm start" inside backend/ directory.'
+      };
+    }
+
+    return this.lastBackendStatus;
+  }
+
+  /**
+   * Query AI provider status and readiness
+   */
+  async getChatStatus() {
+    try {
+      return await this._apiRequest('/chat/status');
+    } catch (err) {
+      return {
+        status: 'unreachable',
+        provider: 'unknown',
+        notice: err.message
+      };
+    }
+  }
+
+  /**
+   * Helper to perform authenticated requests to the backend API.
+   */
+  async _apiRequest(endpoint, options = {}) {
+    const url = `${this.apiBase}${endpoint}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'X-API-Key': this.apiKey,
+      ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {}),
+      ...(options.headers || {})
+    };
+
+    const res = await fetch(url, {
+      ...options,
+      headers
+    });
+
+    const body = await res.json().catch(() => null);
+
+    if (!res.ok || !body?.success) {
+      const err = new Error(body?.error?.message || `Request failed with status ${res.status}`);
+      err.code = body?.error?.code || 'API_ERROR';
+      err.details = body?.error?.details || null;
+      err.statusCode = res.status;
+      throw err;
+    }
+
+    return body.data;
+  }
+
+  /**
+   * Authenticate with the single-owner backend flow.
+   */
+  async login(username, password) {
+    const data = await this._apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    });
+
+    if (data?.token) {
+      this.setAuthToken(data.token);
+    }
+    return data;
+  }
+
+  /**
+   * Backend Session Operations
+   */
+  async createSession(title = 'New Neural Session') {
+    return this._apiRequest('/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ title })
+    });
+  }
+
+  async getSessions() {
+    return this._apiRequest('/sessions');
+  }
+
+  async getSession(id) {
+    return this._apiRequest(`/sessions/${id}`);
+  }
+
+  async deleteSession(id) {
+    return this._apiRequest(`/sessions/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  /**
+   * Action Confirmation & Cancellation Operations (Stage 2)
+   */
+  async confirmAction(actionId, confirmationToken, passedArgs = null) {
+    return this._apiRequest(`/actions/${actionId}/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({
+        confirmationToken,
+        arguments: passedArgs
+      })
+    });
+  }
+
+  async cancelAction(actionId, reason = 'Operator cancelled via dashboard') {
+    return this._apiRequest(`/actions/${actionId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+  }
+
+  async getActions(sessionId = null) {
+    const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : '';
+    return this._apiRequest(`/actions${query}`);
+  }
+
+  /**
+   * Stage 4 Local Automation Agent Operations
+   */
+  async getAutomationStatus() {
+    try {
+      return await this._apiRequest('/automation/status');
+    } catch (err) {
+      return {
+        online: false,
+        status: 'offline',
+        error: err.message
+      };
+    }
+  }
+
+  async getAutomationCapabilities() {
+    try {
+      return await this._apiRequest('/automation/capabilities');
+    } catch (err) {
+      return {
+        online: false,
+        capabilities: [],
+        allowedApps: []
+      };
+    }
+  }
+
+  async executeAutomationAction(action, params = {}) {
+    return this._apiRequest('/automation/execute', {
+      method: 'POST',
+      body: JSON.stringify({ action, params })
+    });
+  }
+
+  /**
+   * Stage 5 Real Device Connectors (Android ADB & Home Assistant)
+   */
+  async getDeviceSummary() {
+    try {
+      return await this._apiRequest('/devices/summary');
+    } catch (err) {
+      return {
+        android: { agentOnline: false, adbAvailable: false, totalConnected: 0, devices: [] },
+        homeAssistant: { configured: false, online: false, isSimulatedFixture: true, entities: { mediaPlayers: [], lights: [], switches: [] } }
+      };
+    }
+  }
+
+  async getAndroidDevices() {
+    return this._apiRequest('/devices/android');
+  }
+
+  async executeAndroidAction(action, params = {}) {
+    return this._apiRequest('/devices/android/action', {
+      method: 'POST',
+      body: JSON.stringify({ action, params })
+    });
+  }
+
+  async getHassStatus() {
+    return this._apiRequest('/devices/hass/status');
+  }
+
+  async getHassEntities(domain = null) {
+    const q = domain ? `?domain=${encodeURIComponent(domain)}` : '';
+    return this._apiRequest(`/devices/hass/entities${q}`);
+  }
+
+  async controlHassMedia({ entityId, query, action, value }) {
+    return this._apiRequest('/devices/hass/media', {
+      method: 'POST',
+      body: JSON.stringify({ entityId, query, action, value })
+    });
+  }
+
+  async controlHassLight({ entityId, query, action, brightness }) {
+    return this._apiRequest('/devices/hass/light', {
+      method: 'POST',
+      body: JSON.stringify({ entityId, query, action, brightness })
+    });
+  }
+
+  /**
+   * Send a message and handle the response.
+   * If Demo Mode is active: generates realistic local streaming animation.
+   * If Live Mode is active: dispatches to Node.js/Express backend via POST /api/chat.
    */
   sendMessageStream({
     prompt,
+    sessionId = null,
     history = [],
     onStartThinking,
     onChunk,
@@ -45,27 +303,31 @@ export class ApiAdapter {
       isCancelled = true;
     };
 
-    // If a live backend is configured in the future, dispatch to real API
+    // If live backend mode is selected
     if (!this.isDemoMode) {
-      this._streamFromLiveBackend(prompt, history, onStartThinking, onChunk, onComplete, onError, () => isCancelled);
+      this._sendToLiveBackend({
+        prompt,
+        sessionId,
+        onStartThinking,
+        onChunk,
+        onComplete,
+        onError,
+        isCancelled: () => isCancelled
+      });
       return this.activeStreamAbort;
     }
 
-    // --- High-fidelity simulated stream ---
+    // --- Demo Mode: High-fidelity client simulator ---
     (async () => {
       try {
         if (onStartThinking) onStartThinking();
 
-        // 1. Realistic initial thinking latency (500ms - 850ms)
-        const thinkingDelay = Math.floor(Math.random() * 350) + 500;
+        const thinkingDelay = Math.floor(Math.random() * 250) + 400;
         await new Promise(res => setTimeout(res, thinkingDelay));
 
         if (isCancelled) return;
 
-        // 2. Fetch full simulated response
         const fullResponse = getSimulatedResponse(prompt);
-
-        // 3. Break into word/token chunks for realistic typing streaming
         const words = fullResponse.split(' ');
         let accumulated = '';
 
@@ -75,14 +337,11 @@ export class ApiAdapter {
           const word = words[i];
           accumulated += (i === 0 ? '' : ' ') + word;
 
-          if (onChunk) {
-            onChunk(accumulated, word);
-          }
+          if (onChunk) onChunk(accumulated, word);
 
-          // Varied typing delay (punctuation pauses slightly longer)
-          let delay = 22 + Math.floor(Math.random() * 20);
+          let delay = 18 + Math.floor(Math.random() * 15);
           if (word.endsWith('.') || word.endsWith(':') || word.includes('\n')) {
-            delay += 40;
+            delay += 35;
           }
 
           await new Promise(res => setTimeout(res, delay));
@@ -94,12 +353,11 @@ export class ApiAdapter {
           role: 'assistant',
           content: accumulated,
           simulated: true,
+          actions: [],
           timestamp: new Date().toISOString()
         };
 
-        if (onComplete) {
-          onComplete(result);
-        }
+        if (onComplete) onComplete(result);
       } catch (err) {
         if (!isCancelled && onError) {
           onError(err.message || 'Simulated streaming error');
@@ -113,73 +371,75 @@ export class ApiAdapter {
   }
 
   /**
-   * Future Backend Integration Helper
-   * When Node.js/Express backend is ready, set isDemoMode = false
-   * Seamlessly supports both streaming text chunks and JSON payload responses.
+   * Stage 2 Live Backend Dispatch (POST /api/chat with AI & Action Execution)
    */
-  async _streamFromLiveBackend(prompt, history, onStartThinking, onChunk, onComplete, onError, isCancelled) {
+  async _sendToLiveBackend({
+    prompt,
+    sessionId,
+    onStartThinking,
+    onChunk,
+    onComplete,
+    onError,
+    isCancelled
+  }) {
     try {
       if (onStartThinking) onStartThinking();
 
-      const response = await fetch(this.backendEndpoint, {
+      // Ensure a valid session exists in the backend
+      let targetSessionId = sessionId;
+      if (!targetSessionId) {
+        const newSession = await this.createSession('New Tactical Session');
+        targetSessionId = newSession.id;
+      }
+
+      // Dispatch to Stage 2 POST /api/chat
+      const result = await this._apiRequest('/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, history })
+        body: JSON.stringify({
+          sessionId: targetSessionId,
+          message: prompt
+        })
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
+      if (isCancelled()) return;
 
-      // Check if server sent a single JSON response
-      const contentType = response.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const data = await response.json();
-        const content = data.reply || data.content || '';
-        if (onChunk) onChunk(content, content);
-        if (onComplete) {
-          onComplete({
-            role: 'assistant',
-            content,
-            simulated: false,
-            timestamp: new Date().toISOString()
-          });
-        }
-        return;
-      }
+      const assistantMsg = result?.message || {
+        role: 'assistant',
+        content: 'NOVA core completed command synthesis.',
+        timestamp: new Date().toISOString()
+      };
 
-      // Standard text stream chunk reading
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let accumulated = '';
+      const actions = result?.actions || [];
 
-      while (true) {
-        if (isCancelled()) {
-          reader.cancel();
-          return;
-        }
-
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
-        if (onChunk) onChunk(accumulated, chunk);
+      if (onChunk) {
+        onChunk(assistantMsg.content, assistantMsg.content);
       }
 
       if (onComplete) {
         onComplete({
-          role: 'assistant',
-          content: accumulated,
-          simulated: false,
-          timestamp: new Date().toISOString()
+          ...assistantMsg,
+          actions,
+          simulated: false
         });
       }
     } catch (err) {
-      if (!isCancelled() && onError) onError(err.message);
+      if (isCancelled()) return;
+
+      let displayMessage = err.message;
+      if (err.code === 'USAGE_LIMIT_EXCEEDED') {
+        displayMessage = `⚠️ Usage Rate Limit: ${err.message}`;
+      } else if (err.code === 'MODEL_TIMEOUT') {
+        displayMessage = `⏱️ Gateway Timeout: AI model request timed out. Please try again.`;
+      } else if (err.code === 'DATABASE_UNAVAILABLE' || err.code === 'DATABASE_NOT_READY') {
+        const setup = err.details?.setupGuide || 'Please verify MySQL configuration in backend/.env.';
+        displayMessage = `Database Notice: ${err.message}\nSetup: ${setup}`;
+      }
+
+      if (onError) onError(displayMessage);
+    } finally {
+      this.activeStreamAbort = null;
     }
   }
 }
 
 export const api = new ApiAdapter();
-

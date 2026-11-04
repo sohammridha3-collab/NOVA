@@ -180,6 +180,21 @@
   animation: pulse-beacon 2s ease-in-out infinite;
 }
 
+.demo-beacon.beacon-emerald {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.demo-beacon.beacon-crimson {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.demo-beacon.beacon-amber {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
 @keyframes pulse-beacon {
   0%, 100% { opacity: 0.4; transform: scale(0.9); }
   50% { opacity: 1; transform: scale(1.2); }

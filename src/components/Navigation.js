@@ -66,6 +66,17 @@ export class Navigation {
           <span class="nav-icon">${ICONS.history}</span>
         </button>
 
+        <!-- Real Device Connectors Nav Item (Stage 5) -->
+        <button
+          type="button"
+          class="nav-item"
+          data-view="devices"
+          title="Real Device Connectors"
+          aria-label="Device Connectors"
+        >
+          <span class="nav-icon">${ICONS.mobile}</span>
+        </button>
+
         <!-- Settings Nav Item -->
         <button
           type="button"

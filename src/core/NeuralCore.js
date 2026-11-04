@@ -638,10 +638,20 @@ export class NeuralCore {
         this.pulseMultiplier = 1.25;
         this.glowIntensity = 1.8;
         break;
+      case 'transcribing':
+        this.speedMultiplier = 2.0;
+        this.pulseMultiplier = 1.6;
+        this.glowIntensity = 2.0;
+        break;
       case 'thinking':
         this.speedMultiplier = 2.4;
         this.pulseMultiplier = 1.45;
         this.glowIntensity = 2.2;
+        break;
+      case 'acting':
+        this.speedMultiplier = 2.8;
+        this.pulseMultiplier = 1.8;
+        this.glowIntensity = 2.5;
         break;
       case 'speaking':
         this.speedMultiplier = 1.2;

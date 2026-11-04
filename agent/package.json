@@ -1,0 +1,12 @@
+{
+  "name": "nova-automation-agent",
+  "version": "1.0.0",
+  "description": "NOVA Local Automation Agent for Windows",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node tests/agent.test.js"
+  }
+}
+

@@ -266,6 +266,7 @@
 }
 
 .holographic-slider {
+  appearance: none;
   -webkit-appearance: none;
   width: 100%;
   height: 4px;
@@ -275,6 +276,7 @@
 }
 
 .holographic-slider::-webkit-slider-thumb {
+  appearance: none;
   -webkit-appearance: none;
   width: 12px;
   height: 12px;

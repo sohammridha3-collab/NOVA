@@ -15,8 +15,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
   <!-- Core Stylesheets -->
-  <script type="module" crossorigin src="/assets/index-CPTtOKQh.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DKjnmAGU.css">
+  <script type="module" crossorigin src="/assets/index-S5pfmldu.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CI3tFMzW.css">
 </head>
 <body>
   <!-- Visible Startup Error Notice (Unhidden only if catastrophic JS failure occurs) -->
@@ -133,6 +133,9 @@
           <button type="button" class="nav-item" data-view="history" title="Conversation Archive" aria-label="History">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
           </button>
+          <button type="button" class="nav-item" data-view="devices" title="Real Device Connectors (Android & Home Assistant)" aria-label="Device Connectors">
+            <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg></span>
+          </button>
           <button type="button" class="nav-item" data-action="settings" title="System Preferences" aria-label="Settings">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
           </button>
@@ -187,6 +190,15 @@
                   <span class="panel-status-pill" id="voiceStatusIndicator">READY</span>
                 </div>
                 <div class="panel-body voice-panel-body">
+                  <div class="control-row">
+                    <label for="selectVoiceLanguage">SPOKEN LANGUAGE</label>
+                    <select id="selectVoiceLanguage" class="holographic-select">
+                      <option value="auto">Auto-Detect Language</option>
+                      <option value="en">English (en)</option>
+                      <option value="bn">Bengali / বাংলা (bn)</option>
+                      <option value="hi">Hindi / हिन्दी (hi)</option>
+                    </select>
+                  </div>
                   <div class="control-row">
                     <label for="selectVoicePersona">VOICE PERSONA</label>
                     <select id="selectVoicePersona" class="holographic-select">
@@ -358,7 +370,10 @@
                     <span class="panel-title">TELEMETRY</span>
                     <span class="panel-bracket">]</span>
                   </div>
-                  <span class="telemetry-live-dot" title="Live stream active"></span>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="panel-status-pill status-offline" id="agentStatusIndicator" title="Probing local automation agent status...">AGENT: PROBING</span>
+                    <span class="telemetry-live-dot" title="Live stream active"></span>
+                  </div>
                 </div>
                 <div class="panel-body telemetry-body">
                   <div class="telemetry-log-stream" id="telemetryLogStream">
@@ -382,6 +397,14 @@
                 </div>
                 <div class="panel-body matrix-body">
                   <div class="matrix-grid">
+                    <button type="button" class="matrix-tile" id="btnMatrixSysInfo" title="Query genuine OS & CPU measurements">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                      <span>Host Specs</span>
+                    </button>
+                    <button type="button" class="matrix-tile" id="btnMatrixWorkspace" title="Search NOVA workspace files">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                      <span>Workspace</span>
+                    </button>
                     <button type="button" class="matrix-tile" id="btnMatrixStudio">
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
                       <span>Website Studio</span>
@@ -441,46 +464,89 @@
         <div class="workspace-view" id="viewHistory">
           <!-- Rendered by HistoryView.js -->
         </div>
+
+        <!-- View 4: Real Device Connectors (Stage 5) -->
+        <div class="workspace-view" id="viewDevices">
+          <!-- Rendered by DevicesView.js -->
+        </div>
       </main>
     </div>
   </div>
 
-  <!-- Demo Notice Dialog Modal -->
-  <div class="modal-backdrop" id="demoNoticeModal" role="dialog" aria-modal="true" aria-label="Demo Mode Details">
+  <!-- Demo & Backend Notice Dialog Modal -->
+  <div class="modal-backdrop" id="demoNoticeModal" role="dialog" aria-modal="true" aria-label="Backend Connection & Architecture">
     <div class="modal-dialog">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fbbf24" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          <span class="modal-title">Holographic Command Centre Architecture</span>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <span class="modal-title">Backend Architecture & Live Connection</span>
         </div>
         <button class="icon-btn" id="btnCloseDemoModal" aria-label="Close dialog">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
         </button>
       </div>
       <div class="modal-body">
-        <p style="color: var(--text-primary); font-size: 0.94rem; line-height: 1.6;">
-          You are viewing <strong>NOVA — Holographic Command Centre</strong>, inspired by cinematic holographic sci-fi dashboards.
+        <p style="color: var(--text-primary); font-size: 0.92rem; line-height: 1.6;">
+          NOVA is built with a modular <strong>Node.js, Express & MySQL</strong> backend architecture, supporting both high-fidelity client simulation (Demo Mode) and live database-backed conversations.
         </p>
 
-        <div style="background: rgba(4, 10, 24, 0.7); border: 1px solid var(--border-subtle); padding: 1rem; border-radius: var(--radius-md); margin-top: 0.75rem;">
-          <h4 style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 0.5rem;">Command Centre Subsystems:</h4>
-          <ul style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 1.25rem; display: flex; flex-direction: column; gap: 0.35rem;">
-            <li><strong>Central Circular Holographic Reactor:</strong> Layered Three.js nucleus, 3 independently rotating segmented rings, 72 procedural radial ticks, and tilted orbital beacon assembly.</li>
-            <li><strong>Balanced 4-Panel Matrix:</strong> Sessions Archive & Acoustic Synthesis on left; Live Telemetry & Quick Operations on right.</li>
-            <li><strong>Expandable Conversation Stream:</strong> Keeps default dashboard clean and focused on the reactor while providing full rich chat & syntax-highlighted code with copy buttons when expanded.</li>
-            <li><strong>Acoustic Telemetry:</strong> Live voice velocity control, persona selection, and Web Speech API synthesis with manual stop controls.</li>
-          </ul>
+        <!-- Live Connection Telemetry Card -->
+        <div style="background: rgba(4, 10, 26, 0.85); border: 1px solid var(--border-medium); padding: 1rem; border-radius: var(--radius-md); margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.65rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent-cyan); font-weight: 600; text-transform: uppercase;">Real Backend Status:</span>
+            <button type="button" class="btn-holo-sm" id="btnCheckBackendHealth" style="padding: 0.2rem 0.6rem; font-size: 0.64rem;">
+              <span>Test Connection</span>
+            </button>
+          </div>
+
+          <div style="font-family: var(--font-mono); font-size: 0.74rem; display: flex; flex-direction: column; gap: 0.35rem;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">API Endpoint:</span>
+              <span style="color: var(--text-primary);">http://localhost:3001/api</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Express Server:</span>
+              <span id="backendServerStatus" style="color: var(--accent-amber);">Probing...</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">MySQL Database:</span>
+              <span id="backendDbStatus" style="color: var(--accent-amber);">Probing...</span>
+            </div>
+          </div>
+
+          <!-- Structured Setup Diagnostic Notice (Dynamically populated) -->
+          <div id="backendSetupNoticeBox" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-sm); padding: 0.65rem; font-size: 0.75rem; color: #fde68a; line-height: 1.45; display: none;">
+            <span id="backendSetupNoticeText"></span>
+          </div>
         </div>
 
-        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); padding: 1rem; border-radius: var(--radius-md); margin-top: 1rem;">
-          <h4 style="font-family: var(--font-mono); font-size: 0.8rem; color: #fbbf24; text-transform: uppercase; margin-bottom: 0.5rem;">Connecting to Node.js/Express:</h4>
-          <p style="font-size: 0.82rem; color: #e2e8f0; line-height: 1.5;">
-            Responses are currently generated locally by <code>src/services/apiAdapter.js</code>. Set <code>isDemoMode = false</code> and point to your <code>POST /api/chat</code> endpoint to connect a real backend.
-          </p>
+        <!-- Mode Toggle Section -->
+        <div style="background: rgba(4, 10, 24, 0.6); border: 1px solid var(--border-glass); padding: 0.85rem 1rem; border-radius: var(--radius-md); margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+            <span style="font-family: var(--font-mono); font-size: 0.76rem; font-weight: 600; color: var(--text-primary);">Operating Mode:</span>
+            <span id="currentOperatingModeLabel" style="font-size: 0.72rem; color: var(--accent-cyan);">Demo Mode (Local Simulator)</span>
+          </div>
+          <button type="button" class="btn-primary" id="btnToggleOperatingMode" style="padding: 0.4rem 0.85rem; font-size: 0.72rem;">
+            Switch to Live Backend
+          </button>
+        </div>
+
+        <!-- CLI Guide Card -->
+        <div style="background: rgba(6, 14, 32, 0.6); border: 1px solid var(--border-glass); padding: 0.85rem 1rem; border-radius: var(--radius-md); margin-top: 0.75rem;">
+          <h4 style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 0.4rem;">Backend Management Commands:</h4>
+          <pre style="font-family: var(--font-mono); font-size: 0.72rem; background: #02040a; padding: 0.6rem; border-radius: 4px; color: #a5f3fc; line-height: 1.4; margin: 0; overflow-x: auto;">
+# 1. Start Express Server
+cd backend && npm start
+
+# 2. Run Database Migrations
+cd backend && npm run db:migrate
+
+# 3. Execute Automated API Test Suite
+cd backend && npm run test:api</pre>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-primary" id="btnDismissDemoModal">Acknowledge</button>
+        <button class="btn-primary" id="btnDismissDemoModal">Close</button>
       </div>
     </div>
   </div>
